@@ -17,6 +17,10 @@ export function exportForecastToExcel(result: ForecastResult) {
       row[`${periodLabel(p)} Qty (pcs)`] = it.qtyHistory[i];
     });
     row[`Forecast ${next} (pcs)`] = it.forecastQty;
+    row['Status'] = it.isManual ? 'Manual Adjustment' : 'AI Prediction';
+    if (it.isManual) {
+      row['AI Baseline (pcs)'] = it.originalForecastQty;
+    }
     row['Low (pcs)'] = it.low;
     row['High (pcs)'] = it.high;
     row['Change vs last month'] = it.change === null ? null : Math.round(it.change * 1000) / 10;

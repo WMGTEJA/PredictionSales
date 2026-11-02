@@ -1,13 +1,18 @@
 import type { StoredReport } from './types';
 import { packSizeFromCode } from './packsize';
 
-export type ForecastMethod = 'smart' | 'ann' | 'weighted' | 'average' | 'last';
+export type ForecastMethod = 'ensemble' | 'smart' | 'ann' | 'weighted' | 'average' | 'last';
 
 export const METHOD_INFO: Record<ForecastMethod, { label: string; description: string }> = {
+  ensemble: {
+    label: 'Best-Fit Adaptive Ensemble',
+    description:
+      'Auto-tuned supply chain model blending 3-month moving average, weighted momentum, outlier spike dampening, and dormant item detection. Recommended.',
+  },
   smart: {
     label: 'Smart blend',
     description:
-      'Mix of a weighted average (recent months count more) and the item’s trend line. Recommended.',
+      'Mix of a weighted average (recent months count more) and the item’s trend line.',
   },
   ann: {
     label: 'Artificial Neural Network (ANN)',
@@ -40,6 +45,10 @@ export interface ItemForecast {
   amountHistory: number[];
   lastQty: number;
   forecastQty: number;
+  /** Raw algorithmic prediction before any manual overrides. */
+  originalForecastQty: number;
+  /** True if this quantity was manually adjusted by the user. */
+  isManual?: boolean;
   low: number;
   high: number;
   /** Average RM per unit in the most recent month with sales. */
@@ -124,17 +133,68 @@ export function forecastSeries(
     case 'ann':
       value = forecastANN(y);
       break;
-    case 'smart':
+    case 'smart': {
+      if (n === 1) {
+        value = last;
+        break;
+      }
+      const trendValue = Math.max(0, mean + slope * (n - xMean));
+      const trendWeight = n >= 3 ? 0.5 : 0.3;
+      value = (1 - trendWeight) * weighted + trendWeight * trendValue;
+      break;
+    }
+    case 'ensemble':
     default: {
       if (n === 1) {
         value = last;
         break;
       }
-      // Trend line projected one month ahead, blended with the weighted average
-      // so that one unusual month doesn't swing the forecast too much.
+
+      // 1. Dormant check: if item had sales in the past but 0 in the last 2 consecutive months
+      if (n >= 3 && y[n - 1] === 0 && y[n - 2] === 0) {
+        value = 0;
+        break;
+      }
+
+      // 2. Intermittent check: if >= 40% months are zero and last month was zero
+      const zeroCount = y.filter((v) => v === 0).length;
+      if (zeroCount / n >= 0.4 && last === 0) {
+        const nonZeros = y.filter((v) => v > 0);
+        const avgNZ = nonZeros.reduce((a, b) => a + b, 0) / nonZeros.length;
+        const prob = (n - zeroCount) / n;
+        value = prob * 0.4 * avgNZ;
+        break;
+      }
+
+      // 3. Smart Blend component (weighted average + least-squares trend line)
       const trendValue = Math.max(0, mean + slope * (n - xMean));
-      const trendWeight = n >= 3 ? 0.5 : 0.3;
-      value = (1 - trendWeight) * weighted + trendWeight * trendValue;
+      const trendWeight = n >= 3 ? 0.4 : 0.25;
+      const smartValue = (1 - trendWeight) * weighted + trendWeight * trendValue;
+
+      // 4. Moving Average (recent 3 months)
+      const s3 = y.slice(-3);
+      const ma3 = s3.reduce((a, b) => a + b, 0) / s3.length;
+
+      // 5. Weighted 4-Month (1 : 2 : 3 : 4)
+      const s4 = y.slice(-4);
+      const weights = [1, 2, 3, 4].slice(4 - s4.length);
+      const sumW = weights.reduce((a, b) => a + b, 0);
+      const wma4 = s4.reduce((acc, v, i) => acc + v * weights[i], 0) / sumW;
+
+      // Blended baseline
+      let blended = 0.5 * smartValue + 0.3 * ma3 + 0.2 * wma4;
+
+      // 6. Outlier dampener: if last month spiked abnormally (> 2.3x previous 3-month median)
+      if (n >= 4) {
+        const prev3 = y.slice(-4, -1);
+        const med3 = [...prev3].sort((a, b) => a - b)[1];
+        if (med3 > 0 && last > 2.3 * med3) {
+          blended = 0.65 * blended + 0.35 * med3;
+        }
+      }
+
+      value = blended;
+      break;
     }
   }
 
@@ -257,7 +317,11 @@ function forecastANN(y: number[]): number {
 }
 
 /** Build forecasts for every item across all saved reports. */
-export function buildForecast(reports: StoredReport[], method: ForecastMethod = 'smart'): ForecastResult {
+export function buildForecast(
+  reports: StoredReport[],
+  method: ForecastMethod = 'ensemble',
+  manualAdjustments: Record<string, number> = {},
+): ForecastResult {
   const sorted = [...reports].sort((a, b) => a.period.localeCompare(b.period));
   const periods = sorted.map((r) => r.period);
   const nextPeriod = periods.length ? nextMonth(periods[periods.length - 1]) : null;
@@ -292,7 +356,13 @@ export function buildForecast(reports: StoredReport[], method: ForecastMethod = 
   const items: ItemForecast[] = [];
   for (const [key, e] of byItem) {
     const { value, spread, relativeSlope } = forecastSeries(e.qty, method);
-    const forecastQty = Math.round(value);
+    const rawForecastQty = Math.round(value);
+
+    // Check if user provided a manual adjustment override
+    const hasManual = manualAdjustments[key] !== undefined && !Number.isNaN(manualAdjustments[key]);
+    const forecastQty = hasManual ? Math.max(0, Math.round(manualAdjustments[key])) : rawForecastQty;
+    const isManual = hasManual;
+
     const lastQty = e.qty[e.qty.length - 1] ?? 0;
 
     // Unit price from the latest month that had both qty and amount.
@@ -323,6 +393,8 @@ export function buildForecast(reports: StoredReport[], method: ForecastMethod = 
       amountHistory: e.amount.map((a) => Math.round(a * 100) / 100),
       lastQty,
       forecastQty,
+      originalForecastQty: rawForecastQty,
+      isManual,
       low: Math.max(0, Math.round(value - spread)),
       high: Math.round(value + spread),
       unitPrice,

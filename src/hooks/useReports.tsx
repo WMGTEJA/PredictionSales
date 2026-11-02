@@ -13,6 +13,21 @@ interface StorageContextType {
   syncNow: (customUrl?: string) => Promise<boolean>;
   lastSyncedAt: string | null;
   resetData: () => Promise<void>;
+  manualAdjustments: Record<string, number>;
+  setManualAdjustment: (code: string, qty: number | null) => void;
+  resetManualAdjustments: () => void;
+}
+
+const MANUAL_KEY = 'wmg_sales_manual_adjustments';
+
+function getInitialManual(): Record<string, number> {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(MANUAL_KEY) : null;
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
 }
 
 const StorageContext = createContext<StorageContextType | null>(null);
@@ -24,6 +39,32 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(getLastSyncedAt());
+  const [manualAdjustments, setManualAdjustments] = useState<Record<string, number>>(() => getInitialManual());
+
+  const setManualAdjustment = (code: string, qty: number | null) => {
+    setManualAdjustments((prev) => {
+      const key = code.trim().toUpperCase();
+      const next = { ...prev };
+      if (qty === null || qty === undefined || qty < 0) {
+        delete next[key];
+      } else {
+        next[key] = Math.round(qty);
+      }
+      try {
+        localStorage.setItem(MANUAL_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save manual adjustments:', e);
+      }
+      return next;
+    });
+  };
+
+  const resetManualAdjustments = () => {
+    setManualAdjustments({});
+    try {
+      localStorage.removeItem(MANUAL_KEY);
+    } catch {}
+  };
 
   const refresh = async () => {
     setLoading(true);
@@ -84,6 +125,9 @@ export function StorageProvider({ children }: { children: ReactNode }) {
         syncNow,
         lastSyncedAt,
         resetData,
+        manualAdjustments,
+        setManualAdjustment,
+        resetManualAdjustments,
       }}
     >
       {children}

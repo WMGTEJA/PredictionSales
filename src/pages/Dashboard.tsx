@@ -25,12 +25,12 @@ import { buildForecast } from '../lib/forecast';
 import { fmtCompact, fmtInt, periodLabel, periodShort } from '../lib/format';
 
 export default function Dashboard() {
-  const { reports, loading, syncing, syncNow } = useReports();
+  const { reports, loading, syncing, syncNow, manualAdjustments } = useReports();
 
   const forecast = useMemo(() => {
     if (reports.length === 0) return null;
-    return buildForecast(reports, 'smart');
-  }, [reports]);
+    return buildForecast(reports, 'ensemble', manualAdjustments);
+  }, [reports, manualAdjustments]);
 
   if (loading && reports.length === 0) {
     return (

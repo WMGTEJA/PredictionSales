@@ -181,4 +181,17 @@ CS-FG,CSAJ200Gx24,CIK SURI ASAM JAWA 200G x 24,OCT,100.00`;
     expect(topItem.stockGroup).toBeDefined();
     expect(topItem.desc).toBeDefined();
   });
+
+  it('runs Best-Fit Adaptive Ensemble and supports manual overrides', async () => {
+    const { INITIAL_SHEET_REPORTS } = await import('../data/defaultSheetReports');
+    const result = buildForecast(INITIAL_SHEET_REPORTS, 'ensemble', {
+      '99RGSC200GX12': 88888,
+    });
+    expect(result.nextPeriod).toBe('2026-11');
+    const item = result.items.find((it) => it.code === '99RGSC200GX12');
+    expect(item).toBeDefined();
+    expect(item?.forecastQty).toBe(88888);
+    expect(item?.isManual).toBe(true);
+    expect(item?.originalForecastQty).toBeGreaterThan(0);
+  });
 });
