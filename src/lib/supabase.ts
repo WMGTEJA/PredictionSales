@@ -1,6 +1,11 @@
-/**
- * Supabase connection has been disabled per user request in favor of direct Google Sheet sync.
- */
-export const supabase = null;
-export const isSupabaseConfigured = false;
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+export const supabase: SupabaseClient | null =
+  url && anonKey ? createClient(url, anonKey, { auth: { persistSession: true } }) : null;
+
+export const isSupabaseConfigured = supabase !== null;
+
 export const REPORTS_BUCKET = 'reports';
