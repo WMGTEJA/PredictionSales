@@ -1,0 +1,18 @@
+# Dependencies & build output
+node_modules/
+dist/
+
+# Local environment (contains your Supabase keys)
+.env
+.env.local
+.env.*.local
+
+# Real sales reports – never commit these to GitHub
+sample-data/
+*.xlsx
+*.xls
+
+# Misc
+.DS_Store
+*.log
+coverage/
