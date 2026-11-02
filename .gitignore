@@ -2,7 +2,7 @@
 node_modules/
 dist/
 
-# Local environment (contains your Supabase keys)
+# Local environment
 .env
 .env.local
 .env.*.local

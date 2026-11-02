@@ -25,7 +25,7 @@ import { buildForecast } from '../lib/forecast';
 import { fmtCompact, fmtInt, periodLabel, periodShort } from '../lib/format';
 
 export default function Dashboard() {
-  const { reports, loading, syncing, syncNow, unitMode } = useReports();
+  const { reports, loading, syncing, syncNow } = useReports();
 
   const forecast = useMemo(() => {
     if (reports.length === 0) return null;
@@ -68,8 +68,7 @@ export default function Dashboard() {
   const nextShort = forecast.nextPeriod ? periodShort(forecast.nextPeriod) : 'Nov';
   const nextLabel = forecast.nextPeriod ? periodLabel(forecast.nextPeriod, true) : 'November 2026';
 
-  const scaleVal = (qty: number) => (unitMode === 'ctn' ? Math.round(qty / 15) : qty);
-  const unitSuffix = unitMode === 'ctn' ? 'ctn' : 'pcs';
+  const unitSuffix = 'pcs';
 
   const totalVolume = forecast.totals.qtyHistory.reduce((s, v) => s + v, 0);
   const avgMonthlyVolume = Math.round(totalVolume / (periods.length || 1));
@@ -89,7 +88,7 @@ export default function Dashboard() {
   // Build unified Jan-Oct + Nov chart series so the trend line flows cleanly across all months
   const chartData = [
     ...periods.map((p, i) => {
-      const val = scaleVal(forecast.totals.qtyHistory[i]);
+      const val = forecast.totals.qtyHistory[i];
       const isLast = i === periods.length - 1;
       return {
         period: periodShort(p),
@@ -106,9 +105,9 @@ export default function Dashboard() {
       period: `${nextShort} ★`,
       fullPeriod: `${nextLabel} (Prediction)`,
       actualBar: null as number | null,
-      forecastBar: scaleVal(forecast.totals.forecastQty),
+      forecastBar: forecast.totals.forecastQty,
       trendLine: null as number | null,
-      forecastBridge: scaleVal(forecast.totals.forecastQty),
+      forecastBridge: forecast.totals.forecastQty,
       rawQty: forecast.totals.forecastQty,
       isForecast: true,
     },
@@ -116,7 +115,7 @@ export default function Dashboard() {
 
   // Ensure second-to-last point connects to the forecast point via forecastBridge
   if (chartData.length >= 2) {
-    chartData[chartData.length - 2].forecastBridge = scaleVal(lastActual);
+    chartData[chartData.length - 2].forecastBridge = lastActual;
   }
 
   return (
@@ -130,7 +129,7 @@ export default function Dashboard() {
               {firstPeriod} – {lastPeriod} Total
             </div>
             <div className="mt-0.5 text-2xl font-black tracking-tight text-[#37150f] tabular-nums">
-              {fmtCompact(scaleVal(totalVolume))}{' '}
+              {fmtCompact(totalVolume)}{' '}
               <span className="text-xs font-bold text-[#c79754]">{unitSuffix}</span>
             </div>
           </div>
@@ -146,7 +145,7 @@ export default function Dashboard() {
               Monthly Avg
             </div>
             <div className="mt-0.5 text-2xl font-black tracking-tight text-[#37150f] tabular-nums">
-              {fmtCompact(scaleVal(avgMonthlyVolume))}{' '}
+              {fmtCompact(avgMonthlyVolume)}{' '}
               <span className="text-xs font-bold text-[#959242]">{unitSuffix}</span>
             </div>
           </div>
@@ -162,7 +161,7 @@ export default function Dashboard() {
               Peak ({peakPeriodLabel})
             </div>
             <div className="mt-0.5 text-2xl font-black tracking-tight text-[#37150f] tabular-nums">
-              {fmtCompact(scaleVal(peakValue))}{' '}
+              {fmtCompact(peakValue)}{' '}
               <span className="text-xs font-bold text-[#d47837]">{unitSuffix}</span>
             </div>
           </div>
@@ -178,7 +177,7 @@ export default function Dashboard() {
               {nextShort} Prediction
             </div>
             <div className="mt-0.5 text-2xl font-black tracking-tight text-white tabular-nums">
-              {fmtCompact(scaleVal(forecast.totals.forecastQty))}{' '}
+              {fmtCompact(forecast.totals.forecastQty)}{' '}
               <span className="text-xs font-bold text-[#f5d275]">{unitSuffix}</span>
             </div>
           </div>
@@ -264,7 +263,7 @@ export default function Dashboard() {
                     <div className="rounded-2xl border-2 border-[#c79754]/40 bg-[#37150f] px-4 py-2.5 text-xs text-white shadow-lg">
                       <div className="font-extrabold text-[#f5d275]">{d.fullPeriod}</div>
                       <div className="mt-1 font-mono text-sm font-black text-white">
-                        {fmtInt(scaleVal(d.rawQty))} {unitSuffix}
+                        {fmtInt(d.rawQty)} {unitSuffix}
                       </div>
                     </div>
                   );
@@ -312,7 +311,7 @@ export default function Dashboard() {
         {/* Bottom 11-Pill Strip (Jan-Oct + Nov Prediction) */}
         <div className="grid shrink-0 grid-cols-11 gap-1.5 border-t border-[#c79754]/25 pt-3">
           {periods.map((p, idx) => {
-            const qty = scaleVal(forecast.totals.qtyHistory[idx]);
+            const qty = forecast.totals.qtyHistory[idx];
             const isPeak = idx === peakIndex;
             return (
               <div
@@ -339,7 +338,7 @@ export default function Dashboard() {
               {nextShort} ★
             </span>
             <span className="mt-0.5 text-xs font-black tabular-nums text-white">
-              {fmtCompact(scaleVal(forecast.totals.forecastQty))}
+              {fmtCompact(forecast.totals.forecastQty)}
             </span>
           </div>
         </div>

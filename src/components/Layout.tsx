@@ -12,7 +12,7 @@ import { useReports } from '../hooks/useReports';
 import { DEFAULT_SHEET_TAB_NAME, DEFAULT_SHEET_URL } from '../lib/sheets';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { syncing, syncNow, lastSyncedAt, unitMode, setUnitMode } = useReports();
+  const { syncing, syncNow, lastSyncedAt } = useReports();
 
   const formattedSyncTime = lastSyncedAt
     ? new Date(lastSyncedAt).toLocaleTimeString('en-MY', {
@@ -78,35 +78,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             </NavLink>
           </nav>
 
-          {/* Right: Unit Toggle & Sync Controls */}
+          {/* Right: Sync Controls & Sheet Link */}
           <div className="flex items-center gap-2.5">
-            {/* Pieces vs Cartons toggle */}
-            <div className="hidden md:inline-flex rounded-full border border-[#c79754]/30 bg-[#240d09] p-1">
-              <button
-                type="button"
-                className={clsx(
-                  'rounded-full px-3.5 py-1.5 text-xs font-extrabold transition cursor-pointer',
-                  unitMode === 'pcs'
-                    ? 'bg-[#f5d275] text-[#37150f] shadow-xs'
-                    : 'text-[#c79754] hover:text-white',
-                )}
-                onClick={() => setUnitMode('pcs')}
-              >
-                Pcs
-              </button>
-              <button
-                type="button"
-                className={clsx(
-                  'rounded-full px-3.5 py-1.5 text-xs font-extrabold transition cursor-pointer',
-                  unitMode === 'ctn'
-                    ? 'bg-[#f5d275] text-[#37150f] shadow-xs'
-                    : 'text-[#c79754] hover:text-white',
-                )}
-                onClick={() => setUnitMode('ctn')}
-              >
-                Cartons
-              </button>
-            </div>
+            {/* Unit Indicator Badge (Pcs Counting) */}
+            <span className="hidden md:inline-flex items-center rounded-full border border-[#c79754]/30 bg-[#240d09] px-3.5 py-1.5 text-xs font-extrabold text-[#f5d275]">
+              Unit: Pieces (Pcs)
+            </span>
 
             {/* Live Sync Pill */}
             <button

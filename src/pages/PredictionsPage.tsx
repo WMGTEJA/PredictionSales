@@ -28,7 +28,7 @@ const TEN_MONTHS = [
 ];
 
 export default function PredictionsPage() {
-  const { reports, unitMode } = useReports();
+  const { reports } = useReports();
   const [method, setMethod] = useState<ForecastMethod>('smart');
   const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
@@ -75,23 +75,15 @@ export default function PredictionsPage() {
   const periodIndexMap = new Map<string, number>();
   forecast.periods.forEach((p, idx) => periodIndexMap.set(p, idx));
 
-  const convQty = (qty: number, packSize: number | null) => {
-    if (unitMode === 'ctn') {
-      const divisor = packSize && packSize > 0 ? packSize : 15;
-      return Math.round(qty / divisor);
-    }
-    return Math.round(qty);
-  };
-
-  // Column totals for filtered items across Jan-Oct + Prediction
+  // Column totals for filtered items across Jan-Oct + Prediction in Pieces
   const monthTotals = TEN_MONTHS.map((m) => {
     const pIdx = periodIndexMap.get(m.period);
     if (pIdx === undefined) return 0;
-    return filteredItems.reduce((sum, item) => sum + convQty(item.qtyHistory[pIdx] ?? 0, item.packSize), 0);
+    return filteredItems.reduce((sum, item) => sum + (item.qtyHistory[pIdx] ?? 0), 0);
   });
 
   const totalPredicted = filteredItems.reduce(
-    (sum, item) => sum + convQty(item.forecastQty, item.packSize),
+    (sum, item) => sum + item.forecastQty,
     0,
   );
 
@@ -170,6 +162,7 @@ export default function PredictionsPage() {
               className="bg-transparent text-xs font-extrabold text-[#37150f] focus:outline-none cursor-pointer"
             >
               <option value="smart">Smart Trend (Jan–Oct)</option>
+              <option value="ann">Neural Network (ANN)</option>
               <option value="weighted">Weighted Avg (Jan–Oct)</option>
               <option value="average">Simple Average</option>
               <option value="last">Last Month (Oct)</option>
@@ -180,7 +173,7 @@ export default function PredictionsPage() {
         {/* Right: Count Pill & Export Button */}
         <div className="flex items-center gap-2.5">
           <span className="rounded-full bg-[#f5d275]/40 px-3.5 py-1.5 text-xs font-extrabold text-[#37150f]">
-            {filteredItems.length} Items • {unitMode === 'ctn' ? 'Cartons' : 'Pieces'}
+            {filteredItems.length} Items (Pcs)
           </span>
 
           <button
@@ -235,7 +228,7 @@ export default function PredictionsPage() {
                 </tr>
               ) : (
                 filteredItems.map((item) => {
-                  const predVal = convQty(item.forecastQty, item.packSize);
+                  const predVal = item.forecastQty;
                   return (
                     <tr
                       key={item.key}
@@ -256,11 +249,10 @@ export default function PredictionsPage() {
                         {item.desc || <span className="text-[#c79754] italic">—</span>}
                       </td>
 
-                      {/* Cols 3-12: Jan through Oct Qty */}
+                      {/* Cols 3-12: Jan through Oct Qty (Pieces) */}
                       {TEN_MONTHS.map((m) => {
                         const pIdx = periodIndexMap.get(m.period);
-                        const raw = pIdx !== undefined ? (item.qtyHistory[pIdx] ?? 0) : 0;
-                        const val = convQty(raw, item.packSize);
+                        const val = pIdx !== undefined ? (item.qtyHistory[pIdx] ?? 0) : 0;
                         return (
                           <td
                             key={m.period}
@@ -273,7 +265,7 @@ export default function PredictionsPage() {
                         );
                       })}
 
-                      {/* Col 13: Prediction Qty */}
+                      {/* Col 13: Prediction Qty (Pieces) */}
                       <td className="bg-[#f5d275]/25 py-2.5 pl-2 pr-4 text-right font-mono font-black text-[#91171d] tabular-nums">
                         <div className="inline-flex items-center justify-end gap-1">
                           {renderTrendDot(item.trend)}

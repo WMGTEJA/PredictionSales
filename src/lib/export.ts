@@ -19,8 +19,6 @@ export function exportForecastToExcel(result: ForecastResult) {
     row[`Forecast ${next} (pcs)`] = it.forecastQty;
     row['Low (pcs)'] = it.low;
     row['High (pcs)'] = it.high;
-    row['Pcs / carton (est.)'] = it.packSize;
-    row[`Forecast ${next} (ctn, est.)`] = it.packSize ? Math.round((it.forecastQty / it.packSize) * 10) / 10 : null;
     row['Change vs last month'] = it.change === null ? null : Math.round(it.change * 1000) / 10;
     row['Trend'] = it.trend;
     if (it.forecastAmount > 0) {

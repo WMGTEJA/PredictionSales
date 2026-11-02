@@ -92,6 +92,16 @@ describe('forecast', () => {
 
   it('never goes negative', () => {
     expect(forecastSeries([300, 100, 0], 'smart').value).toBeGreaterThanOrEqual(0);
+    expect(forecastSeries([300, 100, 0], 'ann').value).toBeGreaterThanOrEqual(0);
+  });
+
+  it('runs ANN neural network forecast accurately', () => {
+    const annResult = forecastSeries([100, 110, 120, 130, 140], 'ann').value;
+    expect(annResult).toBeGreaterThan(120);
+    expect(annResult).toBeLessThan(170);
+
+    const zeroResult = forecastSeries([], 'ann').value;
+    expect(zeroResult).toBe(0);
   });
 
   it('builds item forecasts, trends and back-test', () => {

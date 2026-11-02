@@ -13,8 +13,6 @@ interface StorageContextType {
   syncNow: (customUrl?: string) => Promise<boolean>;
   lastSyncedAt: string | null;
   resetData: () => Promise<void>;
-  unitMode: 'pcs' | 'ctn';
-  setUnitMode: (mode: 'pcs' | 'ctn') => void;
 }
 
 const StorageContext = createContext<StorageContextType | null>(null);
@@ -26,7 +24,6 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(getLastSyncedAt());
-  const [unitMode, setUnitMode] = useState<'pcs' | 'ctn'>('pcs');
 
   const refresh = async () => {
     setLoading(true);
@@ -87,8 +84,6 @@ export function StorageProvider({ children }: { children: ReactNode }) {
         syncNow,
         lastSyncedAt,
         resetData,
-        unitMode,
-        setUnitMode,
       }}
     >
       {children}

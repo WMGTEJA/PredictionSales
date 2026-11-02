@@ -1,13 +1,18 @@
 import type { StoredReport } from './types';
 import { packSizeFromCode } from './packsize';
 
-export type ForecastMethod = 'smart' | 'weighted' | 'average' | 'last';
+export type ForecastMethod = 'smart' | 'ann' | 'weighted' | 'average' | 'last';
 
 export const METHOD_INFO: Record<ForecastMethod, { label: string; description: string }> = {
   smart: {
     label: 'Smart blend',
     description:
       'Mix of a weighted average (recent months count more) and the item’s trend line. Recommended.',
+  },
+  ann: {
+    label: 'Artificial Neural Network (ANN)',
+    description:
+      'Multi-Layer Perceptron neural network trained on multi-month lag features to capture non-linear sales patterns.',
   },
   weighted: {
     label: 'Weighted average',
@@ -116,6 +121,9 @@ export function forecastSeries(
     case 'weighted':
       value = weighted;
       break;
+    case 'ann':
+      value = forecastANN(y);
+      break;
     case 'smart':
     default: {
       if (n === 1) {
@@ -131,6 +139,121 @@ export function forecastSeries(
   }
 
   return { value: Math.max(0, value), spread, relativeSlope };
+}
+
+/**
+ * Artificial Neural Network (Multi-Layer Perceptron Auto-Regressor)
+ * Uses multi-step lag sliding windows, LeakyReLU activations,
+ * and backpropagation with L2 weight decay regularization.
+ */
+function forecastANN(y: number[]): number {
+  const n = y.length;
+  if (n === 1) return y[0];
+  if (n === 2) return Math.max(0, y[1] * 0.65 + y[0] * 0.35);
+
+  const mean = y.reduce((s, v) => s + v, 0) / n || 1;
+  const norm = y.map((v) => v / mean);
+
+  const windowSize = Math.min(3, n - 1);
+  const X: number[][] = [];
+  const Y: number[] = [];
+
+  for (let i = 0; i <= n - 1 - windowSize; i++) {
+    X.push(norm.slice(i, i + windowSize));
+    Y.push(norm[i + windowSize]);
+  }
+
+  // 4 hidden neurons
+  const hiddenSize = 4;
+  const W1: number[][] = [];
+  for (let h = 0; h < hiddenSize; h++) {
+    const row: number[] = [];
+    for (let w = 0; w < windowSize; w++) {
+      row.push(((h * 3 + w * 7) % 11 - 5) / 10);
+    }
+    W1.push(row);
+  }
+  const b1 = Array(hiddenSize).fill(0.1);
+  const W2 = [0.3, 0.25, -0.2, 0.35];
+  let b2 = 0.1;
+
+  const act = (v: number) => (v > 0 ? v : 0.05 * v);
+  const dAct = (v: number) => (v > 0 ? 1 : 0.05);
+
+  const lr = 0.04;
+  const epochs = 35;
+  const lambda = 0.001;
+
+  for (let ep = 0; ep < epochs; ep++) {
+    for (let s = 0; s < X.length; s++) {
+      const x = X[s];
+      const target = Y[s];
+
+      const z1: number[] = [];
+      const a1: number[] = [];
+      for (let h = 0; h < hiddenSize; h++) {
+        let sum = b1[h];
+        for (let w = 0; w < windowSize; w++) {
+          sum += W1[h][w] * x[w];
+        }
+        z1.push(sum);
+        a1.push(act(sum));
+      }
+
+      let yPred = b2;
+      for (let h = 0; h < hiddenSize; h++) {
+        yPred += W2[h] * a1[h];
+      }
+
+      const error = yPred - target;
+
+      const dW2: number[] = [];
+      for (let h = 0; h < hiddenSize; h++) {
+        dW2.push(error * a1[h] + lambda * W2[h]);
+      }
+      const db2 = error;
+
+      const dW1: number[][] = [];
+      const db1: number[] = [];
+      for (let h = 0; h < hiddenSize; h++) {
+        const dHidden = error * W2[h] * dAct(z1[h]);
+        db1.push(dHidden);
+        const wRow: number[] = [];
+        for (let w = 0; w < windowSize; w++) {
+          wRow.push(dHidden * x[w] + lambda * W1[h][w]);
+        }
+        dW1.push(wRow);
+      }
+
+      for (let h = 0; h < hiddenSize; h++) {
+        W2[h] -= lr * dW2[h];
+        b1[h] -= lr * db1[h];
+        for (let w = 0; w < windowSize; w++) {
+          W1[h][w] -= lr * dW1[h][w];
+        }
+      }
+      b2 -= lr * db2;
+    }
+  }
+
+  // Inference for next month
+  const lastInput = norm.slice(norm.length - windowSize);
+  const a1: number[] = [];
+  for (let h = 0; h < hiddenSize; h++) {
+    let sum = b1[h];
+    for (let w = 0; w < windowSize; w++) {
+      sum += W1[h][w] * lastInput[w];
+    }
+    a1.push(act(sum));
+  }
+  let normPred = b2;
+  for (let h = 0; h < hiddenSize; h++) {
+    normPred += W2[h] * a1[h];
+  }
+
+  const recentMomentum = norm[norm.length - 1];
+  const boundedPred = Math.max(0, 0.7 * normPred + 0.3 * recentMomentum);
+  return Math.max(0, boundedPred * mean);
 }
 
 /** Build forecasts for every item across all saved reports. */
