@@ -3,7 +3,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download,
   Edit2,
   RotateCcw,
   Search,
@@ -12,8 +11,7 @@ import {
 } from 'lucide-react';
 import { useSalesData } from '../hooks/useSalesData';
 import { buildForecast, ForecastMethod, METHOD_INFO } from '../lib/forecast';
-import { fmtCompact, fmtInt } from '../lib/format';
-import { exportForecastToExcel } from '../lib/export';
+import { fmtInt } from '../lib/format';
 import { Sparkline } from '../components/ui';
 
 export default function SalesInvoicePrediction() {
@@ -121,14 +119,6 @@ export default function SalesInvoicePrediction() {
                 ))}
               </select>
             </div>
-
-            {/* <button
-              onClick={() => exportForecastToExcel(forecast)}
-              className="flex items-center gap-2 rounded-xl bg-[#37150f] hover:bg-[#be3937] px-4 py-2 text-xs font-extrabold text-[#f5d275] transition shadow-sm cursor-pointer"
-            >
-              <Download className="size-3.5" />
-              <span>Export 3-Month Excel</span>
-            </button> */}
           </div>
         </div>
 

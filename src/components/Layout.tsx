@@ -2,17 +2,14 @@ import { type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import {
-  ExternalLink,
   FileSpreadsheet,
   LayoutDashboard,
   Layers,
   RefreshCw,
   Scale,
-  Sparkles,
   TrendingUp,
 } from 'lucide-react';
 import { useSalesData } from '../hooks/useSalesData';
-import { SPREADSHEET_MAIN_URL } from '../lib/sheets';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { syncing, syncNow, lastSyncedAt, error } = useSalesData();

@@ -15,14 +15,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  Download,
   Package,
   Scale,
   Search,
   TrendingUp,
   X,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { useSalesData } from '../hooks/useSalesData';
 import { fmtCompact, fmtInt } from '../lib/format';
 
@@ -84,39 +82,6 @@ export default function FulfillmentDashboard() {
     const start = (currentPage - 1) * pageSize;
     return tableItems.slice(start, start + pageSize);
   }, [tableItems, currentPage, pageSize]);
-
-  // Export Fulfillment to Excel
-  const handleExportExcel = () => {
-    const rows = fulfillment.items.map((it) => {
-      const row: Record<string, string | number> = {
-        'Item Code': it.itemCode,
-        'Item Description': it.itemDesc,
-        'Total SO Demand (pcs)': it.soTotal,
-        'Total SI Fulfilled (pcs)': it.siTotal,
-        'Fulfillment Rate (%)': it.fulfillmentPct,
-        'Variance (pcs)': it.variance,
-        Status:
-          it.status === 'over'
-            ? 'Overfulfilled (>100%)'
-            : it.status === 'fulfilled'
-            ? 'Fully Fulfilled (100%)'
-            : it.status === 'partial'
-            ? 'Partial (80-99%)'
-            : 'Low (<80%)',
-      };
-      it.monthly.forEach((m) => {
-        row[`${m.month} SO Qty`] = m.soQty;
-        row[`${m.month} SI Qty`] = m.siQty;
-        row[`${m.month} Fulfillment %`] = m.fulfillmentPct;
-      });
-      return row;
-    });
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'SO vs SI Fulfillment');
-    XLSX.writeFile(wb, `SO_vs_SI_Fulfillment_Report_2026.xlsx`);
-  };
 
   return (
     <div className="space-y-4 pb-10">
@@ -269,17 +234,6 @@ export default function FulfillmentDashboard() {
               </div>
             </div>
           </div>
-
-          {/* Export Report Button
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportExcel}
-              className="flex items-center gap-2 rounded-xl bg-[#37150f] hover:bg-[#91171d] px-4 py-2.5 text-xs font-extrabold text-[#f5d275] transition shadow-sm cursor-pointer"
-            >
-              <Download className="size-3.5" />
-              <span>Export Fulfillment Excel</span>
-            </button>
-          </div> */}
         </div>
       </div>
 
