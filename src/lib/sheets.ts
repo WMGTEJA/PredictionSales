@@ -1,19 +1,173 @@
-import type { StoredReport, ReportItem } from './types';
-import {
-  DEFAULT_CSV_EXPORT_URL,
-  DEFAULT_SHEET_GID,
-  DEFAULT_SHEET_TAB_NAME,
-  DEFAULT_SHEET_URL,
-  INITIAL_SHEET_REPORTS,
-} from '../data/defaultSheetReports';
+import { get, set } from 'idb-keyval';
+import type {
+  MasterSalesData,
+  SORow,
+  SIRow,
+  SICompanyInfo,
+  StoredReport,
+  ItemFulfillment,
+  MonthFulfillment,
+  FulfillmentSummary,
+} from './types';
+import { INITIAL_SALES_DATA } from '../data/initialSalesData';
 
-export const MONTH_NAMES = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+export const SPREADSHEET_ID = '1YELCEtZsFbwstQKGAjTELzwfr4VrPH16IiU4tw1nBEI';
+export const SO_GID = '945362967';
+export const SI_GID = '859053528';
+
+export const SO_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${SO_GID}#gid=${SO_GID}`;
+export const SI_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${SI_GID}#gid=${SI_GID}`;
+export const SPREADSHEET_MAIN_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`;
+
+export const DEFAULT_SHEET_URL = SO_URL;
+export const DEFAULT_SHEET_GID = SO_GID;
+export const DEFAULT_SHEET_TAB_NAME = 'SO JAN-OCT';
+
+export const SO_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${SO_GID}`;
+export const SI_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${SI_GID}`;
+
+export const STORAGE_KEY_MASTER = 'prediction-sales:master-data-v3';
+export const STORAGE_KEY_LAST_SYNC = 'prediction-sales:last-synced-at-v3';
+
+export function getSavedSheetUrl(): string {
+  return SO_URL;
+}
+
+export function saveSheetUrl(_url: string) {}
+
+export function getLastSyncedAt(): string | null {
+  return localStorage.getItem(STORAGE_KEY_LAST_SYNC) || null;
+}
+
+export function getInitialSheetReports(): StoredReport[] {
+  return INITIAL_SALES_DATA.so.monthlyReports;
+}
+
+export async function syncGoogleSheet(_customUrl?: string): Promise<{ reports: StoredReport[]; rowCount: number; syncedAt: string }> {
+  const master = await fetchLiveMasterData();
+  return {
+    reports: master.so.monthlyReports,
+    rowCount: master.so.rows.length,
+    syncedAt: master.syncedAt,
+  };
+}
+
+export function parseSheetCsv(csvText: string, _defaultYear = 2026): {
+  reports: StoredReport[];
+  rowCount: number;
+  uniqueItemCount: number;
+  months: string[];
+} {
+  const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) throw new Error('Empty CSV');
+
+  const header = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
+  const itemCodeIdx = header.findIndex((h) => h.includes('code'));
+  const itemDescIdx = header.findIndex((h) => h.includes('desc'));
+  const monthIdx = header.findIndex((h) => h.includes('month'));
+  const qtyIdx = header.findIndex((h) => h.includes('qty'));
+  const stockIdx = header.findIndex((h) => h.includes('stock') || h.includes('group'));
+
+  const cIdx = itemCodeIdx >= 0 ? itemCodeIdx : 1;
+  const dIdx = itemDescIdx >= 0 ? itemDescIdx : 2;
+  const mIdx = monthIdx >= 0 ? monthIdx : 3;
+  const qIdx = qtyIdx >= 0 ? qtyIdx : 4;
+  const sIdx = stockIdx >= 0 ? stockIdx : 0;
+
+  const monthMap = new Map<string, Map<string, { code: string; desc: string; stockGroup?: string; qty: number; amount: number }>>();
+  const allCodes = new Set<string>();
+  let rowCount = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCsvLine(lines[i]);
+    const code = cols[cIdx];
+    const rawMonth = cols[mIdx]?.toUpperCase().trim();
+    const period = MONTH_MAP[rawMonth] || rawMonth;
+    if (!code || !period) continue;
+
+    const qty = parseFloat(cols[qIdx]?.replace(/,/g, '')) || 0;
+    const desc = cols[dIdx] || '';
+    const stockGroup = cols[sIdx] || '';
+
+    allCodes.add(code);
+    rowCount++;
+
+    if (!monthMap.has(period)) monthMap.set(period, new Map());
+    const m = monthMap.get(period)!;
+    let it = m.get(code);
+    if (!it) {
+      it = { code, desc, stockGroup, qty: 0, amount: 0 };
+      m.set(code, it);
+    }
+    it.qty += qty;
+  }
+
+  const sortedPeriods = Array.from(monthMap.keys()).sort();
+  const reports: StoredReport[] = sortedPeriods.map((p) => {
+    const items = Array.from(monthMap.get(p)!.values());
+    return {
+      id: `report-${p}`,
+      period: p,
+      fileName: `Report ${p}`,
+      filePath: null,
+      grandTotal: null,
+      itemCount: items.length,
+      totalQty: items.reduce((s, it) => s + it.qty, 0),
+      totalAmount: 0,
+      uploadedAt: new Date().toISOString(),
+      items,
+    };
+  });
+
+  return {
+    reports,
+    rowCount,
+    uniqueItemCount: allCodes.size,
+    months: sortedPeriods,
+  };
+}
+
+export const MONTH_MAP: Record<string, string> = {
+  JAN: '2026-01',
+  FEB: '2026-02',
+  MAR: '2026-03',
+  APR: '2026-04',
+  MAY: '2026-05',
+  JUN: '2026-06',
+  JUL: '2026-07',
+  AUG: '2026-08',
+  SEP: '2026-09',
+  OCT: '2026-10',
+};
+
+export const PERIOD_TO_SHORT: Record<string, string> = {
+  '2026-01': 'Jan',
+  '2026-02': 'Feb',
+  '2026-03': 'Mar',
+  '2026-04': 'Apr',
+  '2026-05': 'May',
+  '2026-06': 'Jun',
+  '2026-07': 'Jul',
+  '2026-08': 'Aug',
+  '2026-09': 'Sep',
+  '2026-10': 'Oct',
+};
+
+export const PERIOD_KEYS = [
+  '2026-01',
+  '2026-02',
+  '2026-03',
+  '2026-04',
+  '2026-05',
+  '2026-06',
+  '2026-07',
+  '2026-08',
+  '2026-09',
+  '2026-10',
 ];
 
 /**
- * Robust CSV line splitter that respects quoted fields containing commas.
+ * Robust CSV line splitter that handles quotes and embedded commas.
  */
 export function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
@@ -40,165 +194,70 @@ export function parseCsvLine(line: string): string[] {
 }
 
 /**
- * Convert a Google Sheets URL or GID into a CORS-friendly CSV export URL.
+ * Parse Sales Order CSV text (gid: 945362967).
+ * Columns: Item Code, Item Desc, Company Name, Doc Date, SO Qty
  */
-export function buildSheetExportUrl(urlOrId: string, gid = DEFAULT_SHEET_GID): string {
-  if (urlOrId.includes('/gviz/tq')) return urlOrId;
-
-  const idMatch = urlOrId.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  const sheetId = idMatch ? idMatch[1] : urlOrId;
-
-  const gidMatch = urlOrId.match(/[#?&]gid=([0-9]+)/);
-  const targetGid = gidMatch ? gidMatch[1] : gid;
-
-  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${targetGid}`;
-}
-
-export function parseMonthPeriod(rawMonth: string, defaultYear = 2026): { period: string; short: string } | null {
-  const cleaned = rawMonth.trim().toUpperCase();
-
-  // 1. Matches YYYY-MM or YYYY/MM
-  const yyyyMm = cleaned.match(/^(\d{4})[-/](\d{1,2})$/);
-  if (yyyyMm) {
-    const y = parseInt(yyyyMm[1], 10);
-    const m = parseInt(yyyyMm[2], 10);
-    if (m >= 1 && m <= 12) {
-      return {
-        period: `${y}-${String(m).padStart(2, '0')}`,
-        short: MONTH_NAMES[m - 1],
-      };
-    }
-  }
-
-  // 2. Extracts explicit 4-digit year if present (e.g. "JAN 2026" or "2026-NOV")
-  const yearMatch = cleaned.match(/\b(20\d{2})\b/);
-  const yr = yearMatch ? parseInt(yearMatch[1], 10) : defaultYear;
-
-  // 3. Matches month name abbreviations or full names (JAN, FEB, MARCH, etc.)
-  let mIndex = MONTH_NAMES.findIndex((name) => cleaned.includes(name));
-  if (mIndex < 0) {
-    const numMatch = cleaned.match(/\b(\d{1,2})\b/);
-    if (numMatch) {
-      const num = parseInt(numMatch[1], 10);
-      if (num >= 1 && num <= 12) mIndex = num - 1;
-    }
-  }
-
-  if (mIndex >= 0) {
-    return {
-      period: `${yr}-${String(mIndex + 1).padStart(2, '0')}`,
-      short: MONTH_NAMES[mIndex],
-    };
-  }
-
-  return null;
-}
-
-export interface SheetParseResult {
-  reports: StoredReport[];
-  rowCount: number;
-  uniqueItemCount: number;
-  months: string[];
-}
-
-/**
- * Dynamically parse raw CSV text from Google Sheet into monthly StoredReport objects.
- * Automatically discovers whatever months exist in the sheet's Month column.
- */
-export function parseSheetCsv(csvText: string, defaultYear = 2026): SheetParseResult {
+export function parseSOCsv(csvText: string) {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length < 2) {
-    throw new Error('Spreadsheet data is empty or missing data rows.');
-  }
+  if (lines.length < 2) throw new Error('Sales Order CSV is empty.');
 
-  // Header detection
-  const headerCols = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
-  const stockGroupIdx = headerCols.findIndex((h) => h.includes('stock') || h.includes('group'));
-  const itemCodeIdx = headerCols.findIndex((h) => h.includes('itemcode') || h.includes('code'));
-  const itemDescIdx = headerCols.findIndex((h) => h.includes('desc') || h.includes('description') || h.includes('name'));
-  const monthIdx = headerCols.findIndex((h) => h.includes('month') || h.includes('period'));
-  const qtyIdx = headerCols.findIndex((h) => h.includes('qty') || h.includes('quantity'));
+  const rows: SORow[] = [];
+  const companySet = new Set<string>();
+  const itemMap = new Map<string, string>();
+  const monthlyReportsMap: Record<string, Map<string, { code: string; desc: string; qty: number; amount: number }>> = {};
+  const monthlyTotals: Record<string, number> = {};
 
-  const sIdx = stockGroupIdx >= 0 ? stockGroupIdx : 0;
-  const cIdx = itemCodeIdx >= 0 ? itemCodeIdx : 1;
-  const dIdx = itemDescIdx >= 0 ? itemDescIdx : 2;
-  const mIdx = monthIdx >= 0 ? monthIdx : 3;
-  const qIdx = qtyIdx >= 0 ? qtyIdx : 4;
-
-  const monthMap = new Map<
-    string,
-    {
-      period: string;
-      short: string;
-      itemsMap: Map<string, ReportItem>;
-    }
-  >();
-
-  const allItemCodes = new Set<string>();
-  let validRows = 0;
+  PERIOD_KEYS.forEach((p) => {
+    monthlyReportsMap[p] = new Map();
+    monthlyTotals[p] = 0;
+  });
 
   for (let i = 1; i < lines.length; i++) {
     const cols = parseCsvLine(lines[i]);
-    const rawCode = cols[cIdx]?.trim();
-    const rawMonth = cols[mIdx]?.trim();
-    if (!rawCode || !rawMonth) continue;
+    const itemCode = cols[0];
+    const itemDesc = cols[1] || '';
+    const companyName = cols[2] || '';
+    const rawMonth = cols[3]?.toUpperCase().trim();
+    const period = MONTH_MAP[rawMonth];
+    if (!period || !itemCode) continue;
 
-    // Dynamically parse month/period (no hardcoded month lists)
-    const parsedMonth = parseMonthPeriod(rawMonth, defaultYear);
-    if (!parsedMonth) continue;
+    const qty = parseFloat(cols[4]?.replace(/,/g, '')) || 0;
 
-    const { period, short: monthShort } = parsedMonth;
+    rows.push({
+      itemCode,
+      itemDesc,
+      companyName,
+      docDate: rawMonth,
+      period,
+      qty,
+    });
 
-    if (!monthMap.has(period)) {
-      monthMap.set(period, {
-        period,
-        short: monthShort,
-        itemsMap: new Map(),
-      });
+    if (companyName) companySet.add(companyName);
+    if (!itemMap.has(itemCode)) itemMap.set(itemCode, itemDesc);
+
+    monthlyTotals[period] = (monthlyTotals[period] || 0) + qty;
+    const m = monthlyReportsMap[period];
+    let repIt = m.get(itemCode);
+    if (!repIt) {
+      repIt = { code: itemCode, desc: itemDesc, qty: 0, amount: 0 };
+      m.set(itemCode, repIt);
     }
-
-    const mData = monthMap.get(period)!;
-    const rawQty = cols[qIdx]?.replace(/,/g, '') ?? '0';
-    const qty = parseFloat(rawQty) || 0;
-    const desc = cols[dIdx]?.trim() || '';
-    const stockGroup = cols[sIdx]?.trim() || '';
-
-    allItemCodes.add(rawCode);
-    validRows++;
-
-    let item = mData.itemsMap.get(rawCode);
-    if (!item) {
-      item = {
-        code: rawCode,
-        desc,
-        stockGroup,
-        qty: 0,
-        amount: 0,
-      };
-      mData.itemsMap.set(rawCode, item);
-    }
-    item.qty += qty;
-    if (!item.desc && desc) item.desc = desc;
-    if (!item.stockGroup && stockGroup) item.stockGroup = stockGroup;
+    repIt.qty += qty;
   }
 
-  // Sort periods dynamically in chronological order
-  const sortedPeriods = Array.from(monthMap.keys()).sort();
+  const totalQty = Object.values(monthlyTotals).reduce((a, b) => a + b, 0);
   const nowIso = new Date().toISOString();
 
-  const reports: StoredReport[] = sortedPeriods.map((period) => {
-    const mData = monthMap.get(period)!;
-    const items = Array.from(mData.itemsMap.values()).sort((a, b) => b.qty - a.qty);
-    const totalQty = items.reduce((s, it) => s + it.qty, 0);
-
+  const monthlyReports: StoredReport[] = PERIOD_KEYS.map((p) => {
+    const items = Array.from(monthlyReportsMap[p].values());
     return {
-      id: `sheet-${period}`,
-      period,
-      fileName: `Google Sheets - ${DEFAULT_SHEET_TAB_NAME} (${mData.short})`,
-      filePath: DEFAULT_SHEET_URL,
+      id: `so-${p}`,
+      period: p,
+      fileName: `Sales Order (${PERIOD_TO_SHORT[p]})`,
+      filePath: SO_URL,
       grandTotal: null,
       itemCount: items.length,
-      totalQty,
+      totalQty: items.reduce((s, it) => s + it.qty, 0),
       totalAmount: 0,
       uploadedAt: nowIso,
       items,
@@ -206,95 +265,278 @@ export function parseSheetCsv(csvText: string, defaultYear = 2026): SheetParseRe
   });
 
   return {
-    reports,
-    rowCount: validRows,
-    uniqueItemCount: allItemCodes.size,
-    months: sortedPeriods,
+    rows,
+    companies: Array.from(companySet).sort(),
+    items: Array.from(itemMap.entries())
+      .map(([code, desc]) => ({ code, desc }))
+      .sort((a, b) => a.code.localeCompare(b.code)),
+    monthlyReports,
+    totalQty,
+    monthlyTotals,
   };
 }
 
-const STORAGE_CACHE_KEY = 'prediction-sales:google-sheet-reports-jan-oct';
-const STORAGE_SYNC_TIME_KEY = 'prediction-sales:google-sheet-last-synced';
-const STORAGE_CUSTOM_URL_KEY = 'prediction-sales:google-sheet-url';
-
-export function getSavedSheetUrl(): string {
-  return localStorage.getItem(STORAGE_CUSTOM_URL_KEY) || DEFAULT_SHEET_URL;
-}
-
-export function saveSheetUrl(url: string) {
-  localStorage.setItem(STORAGE_CUSTOM_URL_KEY, url);
-}
-
-export function getLastSyncedAt(): string | null {
-  return localStorage.getItem(STORAGE_SYNC_TIME_KEY) || '2026-11-02T03:40:00.000Z';
-}
-
 /**
- * Load cached reports from localStorage or fallback to pre-bundled Jan-Oct snapshot.
+ * Parse Sales Invoice CSV text (gid: 859053528).
+ * Columns: Company, Company Name, Item Code, Item Desc, Jan-26 to Oct-26, Total Qty
  */
-export function getInitialSheetReports(): StoredReport[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_CACHE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length >= INITIAL_SHEET_REPORTS.length) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.warn('Failed to read cached sheet reports:', err);
-  }
-  return INITIAL_SHEET_REPORTS;
-}
+export function parseSICsv(csvText: string) {
+  const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) throw new Error('Sales Invoice CSV is empty.');
 
-/**
- * Fetch live data from the Google Sheet via CSV export.
- */
-export async function syncGoogleSheet(customUrl?: string): Promise<{
-  reports: StoredReport[];
-  rowCount: number;
-  syncedAt: string;
-}> {
-  const sheetUrl = customUrl || getSavedSheetUrl();
-  const exportUrl = buildSheetExportUrl(sheetUrl);
+  const rows: SIRow[] = [];
+  const companyMap = new Map<string, SICompanyInfo>();
+  const itemMap = new Map<string, string>();
+  const monthlyReportsMap: Record<string, Map<string, { code: string; desc: string; qty: number; amount: number }>> = {};
+  const monthlyTotals: Record<string, number> = {};
 
-  const res = await fetch(exportUrl, {
-    method: 'GET',
-    headers: {
-      Accept: 'text/csv, text/plain, */*',
-    },
+  PERIOD_KEYS.forEach((p) => {
+    monthlyReportsMap[p] = new Map();
+    monthlyTotals[p] = 0;
   });
 
-  if (!res.ok) {
-    throw new Error(`Google Sheets fetch failed with status ${res.status}: ${res.statusText}`);
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCsvLine(lines[i]);
+    const companyCode = cols[0] || '';
+    const companyName = cols[1] || '';
+    const itemCode = cols[2];
+    const itemDesc = cols[3] || '';
+    if (!itemCode) continue;
+
+    const monthlyQty: Record<string, number> = {};
+    let rowTotal = 0;
+    for (let mIdx = 0; mIdx < 10; mIdx++) {
+      const q = parseFloat(cols[4 + mIdx]?.replace(/,/g, '')) || 0;
+      const p = PERIOD_KEYS[mIdx];
+      monthlyQty[p] = q;
+      rowTotal += q;
+      monthlyTotals[p] = (monthlyTotals[p] || 0) + q;
+
+      const m = monthlyReportsMap[p];
+      let repIt = m.get(itemCode);
+      if (!repIt) {
+        repIt = { code: itemCode, desc: itemDesc, qty: 0, amount: 0 };
+        m.set(itemCode, repIt);
+      }
+      repIt.qty += q;
+    }
+
+    rows.push({
+      companyCode,
+      companyName,
+      itemCode,
+      itemDesc,
+      monthlyQty,
+      totalQty: Math.round(rowTotal * 100) / 100,
+    });
+
+    if (companyCode || companyName) {
+      const key = `${companyCode}___${companyName}`;
+      if (!companyMap.has(key)) {
+        companyMap.set(key, {
+          code: companyCode,
+          name: companyName,
+          label: companyCode ? `${companyCode} - ${companyName}` : companyName,
+        });
+      }
+    }
+
+    if (!itemMap.has(itemCode)) itemMap.set(itemCode, itemDesc);
   }
 
-  const csvText = await res.text();
-  const result = parseSheetCsv(csvText);
+  const totalQty = Math.round(Object.values(monthlyTotals).reduce((a, b) => a + b, 0) * 100) / 100;
+  const nowIso = new Date().toISOString();
 
-  if (result.reports.length === 0) {
-    throw new Error('No monthly reports were parsed from Google Sheets.');
-  }
-
-  const syncedAt = new Date().toISOString();
-  try {
-    localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(result.reports));
-    localStorage.setItem(STORAGE_SYNC_TIME_KEY, syncedAt);
-    if (customUrl) saveSheetUrl(customUrl);
-  } catch (err) {
-    console.warn('Could not cache reports to localStorage:', err);
-  }
+  const monthlyReports: StoredReport[] = PERIOD_KEYS.map((p) => {
+    const items = Array.from(monthlyReportsMap[p].values());
+    return {
+      id: `si-${p}`,
+      period: p,
+      fileName: `Sales Invoice (${PERIOD_TO_SHORT[p]})`,
+      filePath: SI_URL,
+      grandTotal: null,
+      itemCount: items.length,
+      totalQty: items.reduce((s, it) => s + it.qty, 0),
+      totalAmount: 0,
+      uploadedAt: nowIso,
+      items,
+    };
+  });
 
   return {
-    reports: result.reports,
-    rowCount: result.rowCount,
-    syncedAt,
+    rows,
+    companies: Array.from(companyMap.values()).sort((a, b) => a.label.localeCompare(b.label)),
+    items: Array.from(itemMap.entries())
+      .map(([code, desc]) => ({ code, desc }))
+      .sort((a, b) => a.code.localeCompare(b.code)),
+    monthlyReports,
+    totalQty,
+    monthlyTotals,
   };
 }
 
-export {
-  DEFAULT_SHEET_URL,
-  DEFAULT_SHEET_GID,
-  DEFAULT_SHEET_TAB_NAME,
-  DEFAULT_CSV_EXPORT_URL,
-};
+/**
+ * Calculate Fulfillment (SO vs SI) for items only.
+ */
+export function buildFulfillmentSummary(
+  soData: ReturnType<typeof parseSOCsv>,
+  siData: ReturnType<typeof parseSICsv>,
+): FulfillmentSummary {
+  const allItemCodes = new Set<string>();
+  const itemDescMap = new Map<string, string>();
+
+  soData.items.forEach((it) => {
+    allItemCodes.add(it.code);
+    itemDescMap.set(it.code, it.desc);
+  });
+  siData.items.forEach((it) => {
+    allItemCodes.add(it.code);
+    if (!itemDescMap.has(it.code)) itemDescMap.set(it.code, it.desc);
+  });
+
+  const soReportsMap: Record<string, Map<string, number>> = {};
+  const siReportsMap: Record<string, Map<string, number>> = {};
+
+  PERIOD_KEYS.forEach((p, idx) => {
+    const soRep = soData.monthlyReports[idx];
+    const siRep = siData.monthlyReports[idx];
+    const sMap = new Map<string, number>();
+    const iMap = new Map<string, number>();
+    soRep?.items.forEach((it) => sMap.set(it.code, it.qty));
+    siRep?.items.forEach((it) => iMap.set(it.code, it.qty));
+    soReportsMap[p] = sMap;
+    siReportsMap[p] = iMap;
+  });
+
+  const items: ItemFulfillment[] = [];
+
+  for (const code of allItemCodes) {
+    const desc = itemDescMap.get(code) || code;
+    let soItemTotal = 0;
+    let siItemTotal = 0;
+
+    const monthly: MonthFulfillment[] = PERIOD_KEYS.map((p) => {
+      const soQ = soReportsMap[p]?.get(code) || 0;
+      const siQ = siReportsMap[p]?.get(code) || 0;
+      soItemTotal += soQ;
+      siItemTotal += siQ;
+      const pct = soQ > 0 ? Math.round((siQ / soQ) * 1000) / 10 : siQ > 0 ? 100 : 0;
+      return {
+        period: p,
+        month: PERIOD_TO_SHORT[p],
+        soQty: soQ,
+        siQty: siQ,
+        fulfillmentPct: pct,
+        variance: Math.round((siQ - soQ) * 100) / 100,
+      };
+    });
+
+    const overallPct = soItemTotal > 0 ? Math.round((siItemTotal / soItemTotal) * 1000) / 10 : siItemTotal > 0 ? 100 : 0;
+
+    let status: 'over' | 'fulfilled' | 'partial' | 'low' = 'fulfilled';
+    if (overallPct > 100) status = 'over';
+    else if (overallPct >= 99.5) status = 'fulfilled';
+    else if (overallPct >= 80) status = 'partial';
+    else status = 'low';
+
+    items.push({
+      itemCode: code,
+      itemDesc: desc,
+      soTotal: soItemTotal,
+      siTotal: Math.round(siItemTotal * 100) / 100,
+      fulfillmentPct: overallPct,
+      variance: Math.round((siItemTotal - soItemTotal) * 100) / 100,
+      status,
+      monthly,
+    });
+  }
+
+  items.sort((a, b) => b.soTotal + b.siTotal - (a.soTotal + a.siTotal));
+
+  const monthlySummary: MonthFulfillment[] = PERIOD_KEYS.map((p) => {
+    const soQ = soData.monthlyTotals[p] || 0;
+    const siQ = siData.monthlyTotals[p] || 0;
+    const pct = soQ > 0 ? Math.round((siQ / soQ) * 1000) / 10 : 0;
+    return {
+      period: p,
+      month: PERIOD_TO_SHORT[p],
+      soQty: soQ,
+      siQty: Math.round(siQ * 100) / 100,
+      fulfillmentPct: pct,
+      variance: Math.round((siQ - soQ) * 100) / 100,
+    };
+  });
+
+  const overallFulfillmentPct =
+    soData.totalQty > 0 ? Math.round((siData.totalQty / soData.totalQty) * 1000) / 10 : 0;
+
+  return {
+    totalSoQty: soData.totalQty,
+    totalSiQty: siData.totalQty,
+    overallFulfillmentPct,
+    totalVariance: Math.round((siData.totalQty - soData.totalQty) * 100) / 100,
+    monthly: monthlySummary,
+    items,
+    stats: {
+      totalItems: items.length,
+      fullyFulfilled: items.filter((i) => i.status === 'fulfilled' || i.status === 'over').length,
+      partiallyFulfilled: items.filter((i) => i.status === 'partial').length,
+      lowFulfilled: items.filter((i) => i.status === 'low').length,
+    },
+  };
+}
+
+/**
+ * Fetch live data concurrently from both Google Sheets tabs.
+ */
+export async function fetchLiveMasterData(): Promise<MasterSalesData> {
+  const [soRes, siRes] = await Promise.all([
+    fetch(SO_EXPORT_URL, { headers: { Accept: 'text/csv, text/plain, */*' } }),
+    fetch(SI_EXPORT_URL, { headers: { Accept: 'text/csv, text/plain, */*' } }),
+  ]);
+
+  if (!soRes.ok) {
+    throw new Error(`Failed to fetch Sales Order spreadsheet (status ${soRes.status}: ${soRes.statusText})`);
+  }
+  if (!siRes.ok) {
+    throw new Error(`Failed to fetch Sales Invoice spreadsheet (status ${siRes.status}: ${siRes.statusText})`);
+  }
+
+  const [soCsv, siCsv] = await Promise.all([soRes.text(), siRes.text()]);
+
+  const soParsed = parseSOCsv(soCsv);
+  const siParsed = parseSICsv(siCsv);
+  const fulfillment = buildFulfillmentSummary(soParsed, siParsed);
+  const syncedAt = new Date().toISOString();
+
+  const masterData: MasterSalesData = {
+    so: soParsed,
+    si: siParsed,
+    fulfillment,
+    syncedAt,
+  };
+
+  try {
+    await set(STORAGE_KEY_MASTER, masterData);
+    localStorage.setItem(STORAGE_KEY_LAST_SYNC, syncedAt);
+  } catch (err) {
+    console.warn('Could not cache master sales data to IndexedDB:', err);
+  }
+
+  return masterData;
+}
+
+/**
+ * Retrieve cached data from IndexedDB, falling back to the bundled snapshot.
+ */
+export async function getCachedMasterData(): Promise<MasterSalesData> {
+  try {
+    const cached = await get<MasterSalesData>(STORAGE_KEY_MASTER);
+    if (cached && cached.so && cached.si && cached.fulfillment) {
+      return cached;
+    }
+  } catch (e) {
+    console.warn('Failed to load master sales data from IndexedDB cache:', e);
+  }
+  return INITIAL_SALES_DATA;
+}

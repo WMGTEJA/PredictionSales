@@ -1,17 +1,17 @@
 // Auto-generated snapshot of Google Sheet 'SO JAN-OCT'
 import type { StoredReport } from '../lib/types';
 
-export const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1YELCEtZsFbwstQKGAjTELzwfr4VrPH16IiU4tw1nBEI/edit?gid=1334404777#gid=1334404777';
-export const DEFAULT_SHEET_GID = '1334404777';
-export const DEFAULT_SHEET_TAB_NAME = 'SO JAN-OCT';
-export const DEFAULT_CSV_EXPORT_URL = 'https://docs.google.com/spreadsheets/d/1YELCEtZsFbwstQKGAjTELzwfr4VrPH16IiU4tw1nBEI/gviz/tq?tqx=out:csv&gid=1334404777';
+export const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1YELCEtZsFbwstQKGAjTELzwfr4VrPH16IiU4tw1nBEI/edit?gid=945362967#gid=945362967';
+export const DEFAULT_SHEET_GID = '945362967';
+export const DEFAULT_SHEET_TAB_NAME = 'SO JAN-OCT NEW';
+export const DEFAULT_CSV_EXPORT_URL = 'https://docs.google.com/spreadsheets/d/1YELCEtZsFbwstQKGAjTELzwfr4VrPH16IiU4tw1nBEI/gviz/tq?tqx=out:csv&gid=945362967';
 
 export const INITIAL_SHEET_REPORTS: StoredReport[] = [
   {
     "id": "sheet-2026-01",
     "period": "2026-01",
     "fileName": "Google Sheets - SO JAN-OCT (JAN)",
-    "filePath": "https://docs.google.com/spreadsheets/d/1YELCEtZsFbwstQKGAjTELzwfr4VrPH16IiU4tw1nBEI/edit#gid=1334404777",
+    "filePath": "https://docs.google.com/spreadsheets/d/1YELCEtZsFbwstQKGAjTELzwfr4VrPH16IiU4tw1nBEI/edit#gid=945362967",
     "grandTotal": null,
     "itemCount": 114,
     "totalQty": 527557,
