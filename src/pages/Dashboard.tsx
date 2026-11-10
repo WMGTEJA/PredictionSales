@@ -277,6 +277,7 @@ export default function Dashboard() {
               />
               <Bar
                 dataKey="actualBar"
+                stackId="sales"
                 fill="#c79754"
                 fillOpacity={0.45}
                 radius={[10, 10, 0, 0]}
@@ -284,25 +285,26 @@ export default function Dashboard() {
               />
               <Bar
                 dataKey="forecastBar"
+                stackId="sales"
                 fill="#d47837"
                 radius={[10, 10, 0, 0]}
                 maxBarSize={42}
               />
               <Line
-                type="monotone"
+                type="linear"
                 dataKey="trendLine"
                 stroke="#91171d"
                 strokeWidth={3.5}
-                dot={{ r: 4.5, fill: '#91171d', stroke: '#ffffff', strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: '#be3937' }}
+                dot={{ r: 5, fill: '#91171d', stroke: '#ffffff', strokeWidth: 2 }}
+                activeDot={{ r: 7, fill: '#be3937' }}
               />
               <Line
-                type="monotone"
+                type="linear"
                 dataKey="forecastBridge"
                 stroke="#d47837"
                 strokeWidth={3.5}
                 strokeDasharray="6 4"
-                dot={{ r: 5.5, fill: '#d47837', stroke: '#37150f', strokeWidth: 2 }}
+                dot={{ r: 6, fill: '#d47837', stroke: '#37150f', strokeWidth: 2 }}
               />
             </ComposedChart>
           </ResponsiveContainer>

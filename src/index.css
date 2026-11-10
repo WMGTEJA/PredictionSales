@@ -11,21 +11,28 @@
   --color-gold-soft: #f5d275;
 }
 
-html,
-body,
-#root {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
+html {
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
   background-color: #fbf7f0;
   color: #37150f;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Custom bubbly scrollbar for internal table container */

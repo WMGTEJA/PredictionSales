@@ -184,7 +184,7 @@ export default function SalesOrderDashboard() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             {/* Company Filter Dropdown */}
-            <div className="relative min-w-[260px] sm:min-w-[320px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[280px]">
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#37150f]/70">
                 Filter by Company
               </label>
@@ -209,7 +209,7 @@ export default function SalesOrderDashboard() {
             </div>
 
             {/* Item Search Bar */}
-            <div className="relative min-w-[280px] sm:min-w-[380px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[320px] flex-1">
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#37150f]/70">
                 Choose Item / Search Product
               </label>
@@ -317,25 +317,21 @@ export default function SalesOrderDashboard() {
             </div>
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
-            {fmtInt(totalVolume)} <span className="text-xs font-bold text-[#c79754]">pcs</span>
-          </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">
-            {selectedCompany === 'all' ? 'All Companies' : selectedCompany}
+            {fmtInt(totalVolume)} <span className="text-xs font-bold text-[#c79754]">units</span>
           </div>
         </div>
 
         {/* KPI 2 */}
         <div className="rounded-[22px] border border-[#c79754]/30 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-xs font-bold uppercase tracking-wider">Active Products</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Active SKUs</span>
             <div className="grid size-8 place-items-center rounded-xl bg-[#be3937]/10 text-[#be3937]">
               <Package className="size-4" />
             </div>
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
-            {itemAggregates.length} <span className="text-xs font-bold text-[#c79754]">items</span>
+            {itemAggregates.length} <span className="text-xs font-bold text-[#c79754]">SKUs</span>
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">With orders in Jan–Oct</div>
         </div>
 
         {/* KPI 3 */}
@@ -348,9 +344,8 @@ export default function SalesOrderDashboard() {
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
             {fmtCompact(Math.round(totalVolume / 10))}{' '}
-            <span className="text-xs font-bold text-[#c79754]">pcs/mo</span>
+            <span className="text-xs font-bold text-[#c79754]">units/mo</span>
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">Across 10 months history</div>
         </div>
 
         {/* KPI 4 */}
@@ -364,7 +359,6 @@ export default function SalesOrderDashboard() {
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
             {selectedCompany === 'all' ? so.companies.length : 1}
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">Distinct company accounts</div>
         </div>
       </div>
 
@@ -434,11 +428,11 @@ export default function SalesOrderDashboard() {
                     maxBarSize={48}
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="qty"
                     stroke="#f5d275"
                     strokeWidth={3}
-                    dot={{ fill: '#be3937', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                    dot={{ fill: '#be3937', r: 5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -541,18 +535,15 @@ export default function SalesOrderDashboard() {
                     maxBarSize={48}
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="qty"
                     stroke="#f5d275"
                     strokeWidth={3}
-                    dot={{ fill: '#be3937', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                    dot={{ fill: '#be3937', r: 5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-center text-xs text-[#37150f]/60 font-bold">
-              Tip: Pick an item from the search bar above to see that specific product's trend graph!
-            </p>
           </div>
 
           {/* Top 10 Ordered Items */}
@@ -597,10 +588,6 @@ export default function SalesOrderDashboard() {
             <h3 className="text-base font-black text-[#37150f]">
               Monthly Sales Order Details by Product
             </h3>
-            <p className="text-xs font-bold text-[#37150f]/60">
-              Showing {tableDisplayItems.length} products{' '}
-              {selectedCompany !== 'all' ? `for ${selectedCompany}` : 'across all companies'}
-            </p>
           </div>
 
           {/* Quick Pagination info */}
@@ -626,30 +613,34 @@ export default function SalesOrderDashboard() {
         </div>
 
         {/* The Table */}
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="mt-4 overflow-x-auto table-scroll rounded-xl border border-[#c79754]/25 bg-white">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b-2 border-[#c79754]/30 bg-[#fbf7f0]/80 font-black text-[#37150f]">
-                <th className="py-2.5 px-3">Item Code</th>
-                <th className="py-2.5 px-3">Description</th>
+              <tr className="border-b-2 border-[#c79754]/30 bg-[#fbf7f0]/90 font-black text-[#37150f]">
+                <th className="py-2.5 px-3 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
+                  Item Code
+                </th>
+                <th className="py-2.5 px-3 min-w-[170px]">Description</th>
                 {PERIOD_KEYS.map((p) => (
-                  <th key={p} className="py-2.5 px-2 text-right">
+                  <th key={p} className="py-2.5 px-2 text-right whitespace-nowrap">
                     {PERIOD_TO_SHORT[p]}
                   </th>
                 ))}
-                <th className="py-2.5 px-3 text-right">Total (pcs)</th>
-                <th className="py-2.5 px-2 text-center">Action</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Total (pcs)</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#c79754]/15 font-medium">
               {paginatedItems.map((it) => (
                 <tr
                   key={it.code}
-                  className={`hover:bg-[#f5d275]/15 transition ${
+                  className={`hover:bg-[#f5d275]/15 transition group ${
                     selectedItemCode === it.code ? 'bg-[#f5d275]/25 font-bold' : ''
                   }`}
                 >
-                  <td className="py-2.5 px-3 font-extrabold text-[#91171d]">{it.code}</td>
+                  <td className="py-2.5 px-3 font-extrabold text-[#91171d] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
+                    {it.code}
+                  </td>
                   <td className="py-2.5 px-3 max-w-[220px] truncate text-[#37150f]">{it.desc}</td>
                   {PERIOD_KEYS.map((p) => (
                     <td key={p} className="py-2.5 px-2 text-right tabular-nums text-[#37150f]">

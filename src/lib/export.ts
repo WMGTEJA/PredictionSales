@@ -16,6 +16,14 @@ export function exportForecastToExcel(result: ForecastResult) {
     result.periods.forEach((p, i) => {
       row[`${periodLabel(p)} Qty (pcs)`] = it.qtyHistory[i];
     });
+    // 3-Month AI Predictions
+    row['Nov 2026 AI (pcs)'] = it.novAi;
+    row['Dec 2026 AI (pcs)'] = it.decAi;
+    row['Jan 2027 AI (pcs)'] = it.janAi;
+    // 3-Month Target (+10% MoM) Predictions
+    row['Nov 2026 Target (+10%) (pcs)'] = it.novTarget;
+    row['Dec 2026 Target (+10%) (pcs)'] = it.decTarget;
+    row['Jan 2027 Target (+10%) (pcs)'] = it.janTarget;
     row[`Forecast ${next} (pcs)`] = it.forecastQty;
     row['Status'] = it.isManual ? 'Manual Adjustment' : 'AI Prediction';
     if (it.isManual) {

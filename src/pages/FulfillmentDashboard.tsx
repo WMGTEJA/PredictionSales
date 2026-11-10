@@ -125,7 +125,7 @@ export default function FulfillmentDashboard() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Bar */}
-            <div className="relative min-w-[300px] sm:min-w-[420px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[320px] flex-1">
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#37150f]/70">
                 Search Item for Fulfillment Analysis
               </label>
@@ -270,7 +270,7 @@ export default function FulfillmentDashboard() {
             </div>
           </div>
 
-          {/* Export Report Button */}
+          {/* Export Report Button
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportExcel}
@@ -279,7 +279,7 @@ export default function FulfillmentDashboard() {
               <Download className="size-3.5" />
               <span>Export Fulfillment Excel</span>
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -295,9 +295,8 @@ export default function FulfillmentDashboard() {
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#91171d]">
             {fmtInt(fulfillment.totalSoQty)}{' '}
-            <span className="text-xs font-bold text-[#c79754]">pcs</span>
+            <span className="text-xs font-bold text-[#c79754]">units</span>
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">Total customer demand</div>
         </div>
 
         {/* KPI 2 */}
@@ -310,9 +309,8 @@ export default function FulfillmentDashboard() {
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#be3937]">
             {fmtInt(fulfillment.totalSiQty)}{' '}
-            <span className="text-xs font-bold text-[#c79754]">pcs</span>
+            <span className="text-xs font-bold text-[#c79754]">units</span>
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">Total billed & delivered</div>
         </div>
 
         {/* KPI 3: Overall Fulfillment Rate */}
@@ -328,11 +326,6 @@ export default function FulfillmentDashboard() {
           <div className="mt-2 text-xl sm:text-2xl font-black text-emerald-900">
             {fulfillment.overallFulfillmentPct}%
           </div>
-          <div className="mt-1 text-[11px] font-bold text-emerald-700">
-            {fulfillment.totalVariance >= 0
-              ? `+${fmtInt(fulfillment.totalVariance)} pcs over-demand`
-              : `${fmtInt(fulfillment.totalVariance)} pcs unfulfilled`}
-          </div>
         </div>
 
         {/* KPI 4 */}
@@ -346,9 +339,6 @@ export default function FulfillmentDashboard() {
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
             {fulfillment.stats.fullyFulfilled}{' '}
             <span className="text-sm font-bold text-[#c79754]">/ {fulfillment.stats.totalItems}</span>
-          </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">
-            Products fully fulfilled (≥100%)
           </div>
         </div>
       </div>
@@ -462,12 +452,12 @@ export default function FulfillmentDashboard() {
                 />
                 <Line
                   yAxisId="pct"
-                  type="monotone"
+                  type="linear"
                   dataKey="fulfillmentPct"
                   name="Fulfillment %"
                   stroke="#959242"
                   strokeWidth={3}
-                  dot={{ fill: '#37150f', r: 4, strokeWidth: 2, stroke: '#f5d275' }}
+                  dot={{ fill: '#37150f', r: 5, strokeWidth: 2, stroke: '#f5d275' }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -484,9 +474,6 @@ export default function FulfillmentDashboard() {
               <h3 className="mt-1 text-base sm:text-lg font-black text-[#37150f]">
                 Sales Order (Demand) vs Sales Invoice (Delivered)
               </h3>
-              <p className="text-xs font-bold text-[#37150f]/60">
-                Comparing monthly ordered quantities with actual billed quantities and fulfillment rate
-              </p>
             </div>
 
             <div className="flex items-center gap-4 text-xs font-extrabold">
@@ -573,19 +560,16 @@ export default function FulfillmentDashboard() {
                 />
                 <Line
                   yAxisId="pct"
-                  type="monotone"
+                  type="linear"
                   dataKey="fulfillmentPct"
                   name="Fulfillment %"
                   stroke="#959242"
                   strokeWidth={3}
-                  dot={{ fill: '#37150f', r: 4, strokeWidth: 2, stroke: '#f5d275' }}
+                  dot={{ fill: '#37150f', r: 5, strokeWidth: 2, stroke: '#f5d275' }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <p className="mt-2 text-center text-xs text-[#37150f]/60 font-bold">
-            Tip: Click on any item below or search above to view its monthly fulfillment trend graph!
-          </p>
         </div>
       )}
 
@@ -594,11 +578,8 @@ export default function FulfillmentDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#c79754]/20 pb-3">
           <div>
             <h3 className="text-base font-black text-[#37150f]">
-              Product Fulfillment Comparison Matrix
+              Product Fulfillment Comparison Table
             </h3>
-            <p className="text-xs font-bold text-[#37150f]/60">
-              Comparing demand (Sales Orders) against billed delivery (Sales Invoices) across all products
-            </p>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-bold">
@@ -622,12 +603,14 @@ export default function FulfillmentDashboard() {
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="mt-4 overflow-x-auto table-scroll rounded-xl border border-[#c79754]/25 bg-white">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b-2 border-[#c79754]/30 bg-[#fbf7f0]/80 font-black text-[#37150f]">
-                <th className="py-2.5 px-3">Item Code</th>
-                <th className="py-2.5 px-3">Description</th>
+              <tr className="border-b-2 border-[#c79754]/30 bg-[#fbf7f0]/90 font-black text-[#37150f]">
+                <th className="py-2.5 px-3 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] min-w-[110px]">
+                  Item Code
+                </th>
+                <th className="py-2.5 px-3 min-w-[170px]">Description</th>
                 <th className="py-2.5 px-3 text-right">SO Demand (pcs)</th>
                 <th className="py-2.5 px-3 text-right">SI Fulfilled (pcs)</th>
                 <th className="py-2.5 px-3 text-right">Fulfillment %</th>
@@ -647,7 +630,9 @@ export default function FulfillmentDashboard() {
                         selectedItemCode === it.itemCode ? 'bg-[#f5d275]/25 font-bold' : ''
                       }`}
                     >
-                      <td className="py-2.5 px-3 font-extrabold text-[#37150f]">{it.itemCode}</td>
+                      <td className="py-2.5 px-3 font-extrabold text-[#37150f] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
+                        {it.itemCode}
+                      </td>
                       <td className="py-2.5 px-3 max-w-[240px] truncate text-[#37150f]/80">
                         {it.itemDesc}
                       </td>

@@ -193,7 +193,7 @@ export default function SalesInvoiceDashboard() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             {/* Company Filter (Code + Name) */}
-            <div className="relative min-w-[280px] sm:min-w-[360px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[280px]">
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#37150f]/70">
                 Filter by Company (Code & Name)
               </label>
@@ -218,7 +218,7 @@ export default function SalesInvoiceDashboard() {
             </div>
 
             {/* Item Search Bar */}
-            <div className="relative min-w-[280px] sm:min-w-[380px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[320px] flex-1">
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#37150f]/70">
                 Choose Item / Search Product Code
               </label>
@@ -325,10 +325,7 @@ export default function SalesInvoiceDashboard() {
             </div>
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
-            {fmtInt(totalVolume)} <span className="text-xs font-bold text-[#c79754]">pcs</span>
-          </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">
-            {selectedCompanyKey === 'all' ? 'All Invoiced Companies' : 'Selected Company'}
+            {fmtInt(totalVolume)} <span className="text-xs font-bold text-[#c79754]">units</span>
           </div>
         </div>
 
@@ -340,9 +337,8 @@ export default function SalesInvoiceDashboard() {
             </div>
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
-            {itemAggregates.length} <span className="text-xs font-bold text-[#c79754]">items</span>
+            {itemAggregates.length} <span className="text-xs font-bold text-[#c79754]">SKUs</span>
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">With billed transactions</div>
         </div>
 
         <div className="rounded-[22px] border border-[#c79754]/30 bg-white p-4 shadow-sm">
@@ -354,9 +350,8 @@ export default function SalesInvoiceDashboard() {
           </div>
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
             {fmtCompact(Math.round(totalVolume / 10))}{' '}
-            <span className="text-xs font-bold text-[#c79754]">pcs/mo</span>
+            <span className="text-xs font-bold text-[#c79754]">units/mo</span>
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">Across 10 months history</div>
         </div>
 
         <div className="rounded-[22px] border border-[#c79754]/30 bg-white p-4 shadow-sm">
@@ -369,7 +364,6 @@ export default function SalesInvoiceDashboard() {
           <div className="mt-2 text-xl sm:text-2xl font-black text-[#37150f]">
             {selectedCompanyKey === 'all' ? si.companies.length : 1}
           </div>
-          <div className="mt-1 text-[11px] font-bold text-[#37150f]/60">Distinct company codes</div>
         </div>
       </div>
 
@@ -438,11 +432,11 @@ export default function SalesInvoiceDashboard() {
                     maxBarSize={48}
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="qty"
                     stroke="#f5d275"
                     strokeWidth={3}
-                    dot={{ fill: '#91171d', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                    dot={{ fill: '#91171d', r: 5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -547,18 +541,15 @@ export default function SalesInvoiceDashboard() {
                     maxBarSize={48}
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="qty"
                     stroke="#f5d275"
                     strokeWidth={3}
-                    dot={{ fill: '#91171d', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                    dot={{ fill: '#91171d', r: 5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-center text-xs text-[#37150f]/60 font-bold">
-              Tip: Pick an item from the search bar above to see that specific product's invoiced sales trend!
-            </p>
           </div>
 
           {/* Top 10 Invoiced Items */}
@@ -603,10 +594,6 @@ export default function SalesInvoiceDashboard() {
             <h3 className="text-base font-black text-[#37150f]">
               Monthly Sales Invoice Details by Product
             </h3>
-            <p className="text-xs font-bold text-[#37150f]/60">
-              Showing {tableDisplayItems.length} products{' '}
-              {selectedCompanyKey !== 'all' ? `for ${selectedCompanyKey.replace('___', ' - ')}` : 'across all companies'}
-            </p>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-bold">
@@ -630,30 +617,34 @@ export default function SalesInvoiceDashboard() {
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="mt-4 overflow-x-auto table-scroll rounded-xl border border-[#c79754]/25 bg-white">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b-2 border-[#c79754]/30 bg-[#fbf7f0]/80 font-black text-[#37150f]">
-                <th className="py-2.5 px-3">Item Code</th>
-                <th className="py-2.5 px-3">Description</th>
+              <tr className="border-b-2 border-[#c79754]/30 bg-[#fbf7f0]/90 font-black text-[#37150f]">
+                <th className="py-2.5 px-3 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
+                  Item Code
+                </th>
+                <th className="py-2.5 px-3 min-w-[170px]">Description</th>
                 {PERIOD_KEYS.map((p) => (
-                  <th key={p} className="py-2.5 px-2 text-right">
+                  <th key={p} className="py-2.5 px-2 text-right whitespace-nowrap">
                     {PERIOD_TO_SHORT[p]}
                   </th>
                 ))}
-                <th className="py-2.5 px-3 text-right">Total (pcs)</th>
-                <th className="py-2.5 px-2 text-center">Action</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Total (pcs)</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#c79754]/15 font-medium">
               {paginatedItems.map((it) => (
                 <tr
                   key={it.code}
-                  className={`hover:bg-[#f5d275]/15 transition ${
+                  className={`hover:bg-[#f5d275]/15 transition group ${
                     selectedItemCode === it.code ? 'bg-[#f5d275]/25 font-bold' : ''
                   }`}
                 >
-                  <td className="py-2.5 px-3 font-extrabold text-[#be3937]">{it.code}</td>
+                  <td className="py-2.5 px-3 font-extrabold text-[#be3937] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
+                    {it.code}
+                  </td>
                   <td className="py-2.5 px-3 max-w-[220px] truncate text-[#37150f]">{it.desc}</td>
                   {PERIOD_KEYS.map((p) => (
                     <td key={p} className="py-2.5 px-2 text-right tabular-nums text-[#37150f]">

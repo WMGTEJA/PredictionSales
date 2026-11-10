@@ -44,6 +44,17 @@ export interface ItemForecast {
   qtyHistory: number[];
   amountHistory: number[];
   lastQty: number;
+
+  /** 3-Month AI Predictions */
+  novAi: number;
+  decAi: number;
+  janAi: number;
+
+  /** 3-Month Director Target (+10% MoM compounded from Oct Actual) */
+  novTarget: number;
+  decTarget: number;
+  janTarget: number;
+
   forecastQty: number;
   /** Raw algorithmic prediction before any manual overrides. */
   originalForecastQty: number;
@@ -64,11 +75,18 @@ export interface ItemForecast {
 export interface ForecastResult {
   periods: string[]; // YYYY-MM, oldest → newest
   nextPeriod: string | null;
+  next3Periods: [string, string, string]; // [Nov, Dec, Jan]
   method: ForecastMethod;
   items: ItemForecast[];
   totals: {
     qtyHistory: number[];
     amountHistory: number[];
+    novAiTotal: number;
+    decAiTotal: number;
+    janAiTotal: number;
+    novTargetTotal: number;
+    decTargetTotal: number;
+    janTargetTotal: number;
     forecastQty: number;
     forecastAmount: number;
     low: number;
@@ -325,6 +343,13 @@ export function buildForecast(
   const sorted = [...reports].sort((a, b) => a.period.localeCompare(b.period));
   const periods = sorted.map((r) => r.period);
   const nextPeriod = periods.length ? nextMonth(periods[periods.length - 1]) : null;
+  const p2 = nextPeriod ? nextMonth(nextPeriod) : null;
+  const p3 = p2 ? nextMonth(p2) : null;
+  const next3Periods: [string, string, string] = [
+    nextPeriod ?? '2026-11',
+    p2 ?? '2026-12',
+    p3 ?? '2027-01',
+  ];
 
   // Collect qty / amount per item per period.
   const byItem = new Map<
@@ -355,15 +380,36 @@ export function buildForecast(
 
   const items: ItemForecast[] = [];
   for (const [key, e] of byItem) {
-    const { value, spread, relativeSlope } = forecastSeries(e.qty, method);
-    const rawForecastQty = Math.round(value);
+    const lastQty = e.qty[e.qty.length - 1] ?? 0;
 
-    // Check if user provided a manual adjustment override
+    // 1. Month 1 (Nov) AI Forecast
+    const { value: novVal, spread, relativeSlope } = forecastSeries(e.qty, method);
+    const rawForecastQty = Math.max(0, Math.round(novVal));
+
+    // Check if user provided a manual adjustment override for Nov
     const hasManual = manualAdjustments[key] !== undefined && !Number.isNaN(manualAdjustments[key]);
-    const forecastQty = hasManual ? Math.max(0, Math.round(manualAdjustments[key])) : rawForecastQty;
+    const novAi = hasManual ? Math.max(0, Math.round(manualAdjustments[key])) : rawForecastQty;
     const isManual = hasManual;
 
-    const lastQty = e.qty[e.qty.length - 1] ?? 0;
+    // 2. Month 2 (Dec) AI Forecast (step-ahead projection with Nov)
+    const seriesWithNov = [...e.qty, novAi];
+    const { value: decVal } = forecastSeries(seriesWithNov, method);
+    const decAi = Math.max(0, Math.round(decVal));
+
+    // 3. Month 3 (Jan) AI Forecast (step-ahead projection with Nov + Dec)
+    const seriesWithDec = [...seriesWithNov, decAi];
+    const { value: janVal } = forecastSeries(seriesWithDec, method);
+    const janAi = Math.max(0, Math.round(janVal));
+
+    // 4. Director Target (+10% MoM increase based on Oct Actual)
+    // Nov Target: based on Oct Actual + 10%. If Oct was 0, fall back to Nov AI + 10%
+    const novTarget = lastQty > 0 ? Math.round(lastQty * 1.10) : (novAi > 0 ? Math.round(novAi * 1.10) : 0);
+    // Dec Target: based on Nov Target + 10%
+    const decTarget = novTarget > 0 ? Math.round(novTarget * 1.10) : 0;
+    // Jan Target: based on Dec Target + 10%
+    const janTarget = decTarget > 0 ? Math.round(decTarget * 1.10) : 0;
+
+    const forecastQty = novAi;
 
     // Unit price from the latest month that had both qty and amount.
     let unitPrice = 0;
@@ -392,11 +438,17 @@ export function buildForecast(
       qtyHistory: e.qty,
       amountHistory: e.amount.map((a) => Math.round(a * 100) / 100),
       lastQty,
+      novAi,
+      decAi,
+      janAi,
+      novTarget,
+      decTarget,
+      janTarget,
       forecastQty,
       originalForecastQty: rawForecastQty,
       isManual,
-      low: Math.max(0, Math.round(value - spread)),
-      high: Math.round(value + spread),
+      low: Math.max(0, Math.round(novVal - spread)),
+      high: Math.round(novVal + spread),
       unitPrice,
       forecastAmount: Math.round(forecastQty * unitPrice * 100) / 100,
       change: lastQty > 0 ? forecastQty / lastQty - 1 : null,
@@ -412,6 +464,12 @@ export function buildForecast(
   const totals = {
     qtyHistory: periods.map((_, p) => sum(items.map((it) => it.qtyHistory[p]))),
     amountHistory: periods.map((_, p) => Math.round(sum(items.map((it) => it.amountHistory[p])) * 100) / 100),
+    novAiTotal: sum(items.map((it) => it.novAi)),
+    decAiTotal: sum(items.map((it) => it.decAi)),
+    janAiTotal: sum(items.map((it) => it.janAi)),
+    novTargetTotal: sum(items.map((it) => it.novTarget)),
+    decTargetTotal: sum(items.map((it) => it.decTarget)),
+    janTargetTotal: sum(items.map((it) => it.janTarget)),
     forecastQty: sum(items.map((it) => it.forecastQty)),
     forecastAmount: Math.round(sum(items.map((it) => it.forecastAmount)) * 100) / 100,
     low: sum(items.map((it) => it.low)),
@@ -439,5 +497,5 @@ export function buildForecast(
     };
   }
 
-  return { periods, nextPeriod, method, items, totals, backtest };
+  return { periods, nextPeriod, next3Periods, method, items, totals, backtest };
 }

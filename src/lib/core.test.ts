@@ -128,6 +128,13 @@ describe('forecast', () => {
     expect(a.qtyHistory).toEqual([100, 120, 140]);
     expect(a.trend).toBe('up');
     expect(a.unitPrice).toBe(10);
+    // 3-Month AI and Target (+10% MoM) checks
+    expect(a.novAi).toBeGreaterThan(0);
+    expect(a.decAi).toBeGreaterThan(0);
+    expect(a.janAi).toBeGreaterThan(0);
+    expect(a.novTarget).toBe(154); // 140 * 1.10
+    expect(a.decTarget).toBe(169); // 154 * 1.10
+    expect(a.janTarget).toBe(186); // 169 * 1.10
     expect(result.items.find((i) => i.key === 'NEW')!.trend).toBe('new');
     expect(result.items.find((i) => i.key === 'OLD')!.trend).toBe('stopped');
     expect(result.backtest?.period).toBe('2026-09');
