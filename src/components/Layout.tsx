@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import {
@@ -14,8 +14,6 @@ import { useSalesData } from '../hooks/useSalesData';
 export default function Layout({ children }: { children: ReactNode }) {
   const { syncing, syncNow, lastSyncedAt, error } = useSalesData();
   const location = useLocation();
-  const [logoSrc, setLogoSrc] = useState<string>('/logo.png');
-
   const formattedSyncTime = lastSyncedAt
     ? new Date(lastSyncedAt).toLocaleTimeString('en-MY', {
         hour: '2-digit',
@@ -38,13 +36,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               {/* Brand Logo & Title */}
               <NavLink to="/so/dashboard" className="flex items-center gap-2.5 group">
                 <img
-                  src={logoSrc}
+                  src={`${import.meta.env.BASE_URL}logo.svg`}
                   alt="Sales Prediction Logo"
-                  onError={() => {
-                    if (logoSrc !== '/logo.svg') {
-                      setLogoSrc('/logo.svg');
-                    }
-                  }}
                   className="h-8 sm:h-9 w-auto max-w-[140px] sm:max-w-[180px] object-contain rounded-xl transition-transform group-hover:scale-105"
                 />
               </NavLink>
