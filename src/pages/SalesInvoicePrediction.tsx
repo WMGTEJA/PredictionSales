@@ -93,71 +93,73 @@ export default function SalesInvoicePrediction() {
     forecast.totals.novAiTotal + forecast.totals.decAiTotal + forecast.totals.janAiTotal;
 
   return (
-    <div className="space-y-4 pb-10">
-      {/* Top Banner & Model Selector */}
-      <div className="rounded-[24px] border-2 border-[#c79754]/35 bg-white p-4 sm:p-5 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-[#c79754]/20 pb-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#be3937] px-3 py-1 text-xs font-black text-[#f5d275]">
+    <div className="w-full space-y-4 sm:space-y-6 pb-12">
+      {/* Top Controls & Forecast Model Selector */}
+      <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-4">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#91171d] px-3 py-1 text-xs font-black text-[#f5d275]">
               <Sparkles className="size-3.5" />
-              <span>Sales Invoice Multi-Month Forecast • Nov 2026 – Jan 2027</span>
-            </div>
+              <span>SI Forecast • Nov 2026 – Jan 2027</span>
+            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold text-[#37150f]">Model:</span>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value as ForecastMethod)}
-                className="rounded-xl border border-[#c79754]/40 bg-[#fbf7f0] px-3 py-2 text-xs font-extrabold text-[#37150f] shadow-inner focus:outline-none focus:border-[#91171d]"
-              >
-                {(Object.keys(METHOD_INFO) as ForecastMethod[]).map((m) => (
-                  <option key={m} value={m}>
-                    {METHOD_INFO[m].label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs font-bold text-[#37150f]/80">Model:</span>
+            <select
+              value={method}
+              onChange={(e) => setMethod(e.target.value as ForecastMethod)}
+              className="rounded-full border border-[#c79754]/30 bg-[#fbf7f0] px-3.5 py-1.5 text-xs font-bold text-[#37150f] focus:outline-none focus:border-[#91171d] cursor-pointer"
+            >
+              {(Object.keys(METHOD_INFO) as ForecastMethod[]).map((m) => (
+                <option key={m} value={m}>
+                  {METHOD_INFO[m].label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Prediction KPI Cards */}
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          <div className="rounded-xl border border-[#c79754]/20 bg-[#fbf7f0]/70 p-3.5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#37150f]/60">
-              🤖 Model Prediction (Nov–Jan)
+        {/* Responsive Bubbly KPI Grid */}
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {/* Card 1: AI 3-Month Total */}
+          <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#37150f]/60">
+              AI Forecast (3-Mo)
             </div>
-            <div className="mt-1 text-2xl font-black text-[#37150f]">
+            <div className="mt-1 text-xl sm:text-2xl font-black text-[#37150f]">
               {fmtInt(ai3MoTotal)}{' '}
-              <span className="text-xs font-bold text-[#c79754]">pcs</span>
+              <span className="text-xs font-bold text-[#c79754]">units</span>
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#be3937]/20 bg-rose-50/50 p-3.5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#be3937]/80">
-              🎯 Manual 10% Addition
+          {/* Card 2: Target 3-Month Total */}
+          <div className="bubbly-card rounded-2xl border border-[#91171d]/20 bg-rose-50/50 p-4">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#91171d]">
+              Target (+10% MoM)
             </div>
-            <div className="mt-1 text-2xl font-black text-[#be3937]">
+            <div className="mt-1 text-xl sm:text-2xl font-black text-[#91171d]">
               {fmtInt(target3MoTotal)}{' '}
-              <span className="text-xs font-bold text-[#be3937]/60">pcs</span>
+              <span className="text-xs font-bold text-[#91171d]/60">units</span>
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#c79754]/20 bg-[#fbf7f0]/70 p-3.5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#37150f]/60">
-              Oct 2026 Actual Invoiced
+          {/* Card 3: Oct Actual */}
+          <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#37150f]/60">
+              Oct 2026 Actual
             </div>
-            <div className="mt-1 text-2xl font-black text-[#37150f]">
+            <div className="mt-1 text-xl sm:text-2xl font-black text-[#37150f]">
               {fmtInt(octActual)} <span className="text-xs font-bold text-[#c79754]">units</span>
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#c79754]/20 bg-[#fbf7f0]/70 p-3.5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#37150f]/60">
-              Products Forecasted
+          {/* Card 4: Forecast Shift & Products */}
+          <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#37150f]/60">
+              Products
             </div>
-            <div className="mt-1 text-2xl font-black text-[#37150f]">
+            <div className="mt-1 text-xl sm:text-2xl font-black text-[#37150f]">
               {forecast.items.length}{' '}
               <span className="text-xs font-bold text-[#c79754]">SKUs</span>
             </div>
@@ -165,20 +167,21 @@ export default function SalesInvoicePrediction() {
         </div>
       </div>
 
-      {/* Search and Table */}
-      <div className="rounded-[24px] border-2 border-[#c79754]/35 bg-white p-4 sm:p-5 shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-[#c79754]/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:w-auto sm:min-w-[320px] flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#c79754]" />
+      {/* Search and Table Container */}
+      <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-3">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#c79754]" />
             <input
               type="text"
-              placeholder="Search product code or description…"
+              placeholder="Search invoice product code or name…"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-[#c79754]/40 bg-[#fbf7f0]/60 py-2 pl-9 pr-8 text-xs font-bold text-[#37150f] focus:border-[#91171d] focus:bg-white focus:outline-none"
+              className="w-full rounded-full border border-[#c79754]/30 bg-[#fbf7f0]/70 py-2 pl-10 pr-9 text-xs sm:text-sm font-bold text-[#37150f] focus:border-[#91171d] focus:bg-white focus:outline-none transition-colors"
             />
             {search && (
               <button
@@ -186,14 +189,14 @@ export default function SalesInvoicePrediction() {
                   setSearch('');
                   setCurrentPage(1);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#37150f]/50 hover:text-black cursor-pointer"
+                className="bubbly-btn absolute right-3 top-1/2 -translate-y-1/2 text-[#37150f]/50 hover:text-black cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-auto">
             {/* Page Size Selector */}
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#37150f]/80">
               <span>Show:</span>
@@ -203,7 +206,7 @@ export default function SalesInvoicePrediction() {
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="rounded-lg border border-[#c79754]/40 bg-[#fbf7f0] px-2 py-1 text-xs font-extrabold text-[#37150f] focus:outline-none"
+                className="rounded-full border border-[#c79754]/30 bg-[#fbf7f0] px-3 py-1 text-xs font-bold text-[#37150f] focus:outline-none cursor-pointer"
               >
                 <option value={20}>20 rows</option>
                 <option value={50}>50 rows</option>
@@ -212,12 +215,13 @@ export default function SalesInvoicePrediction() {
               </select>
             </div>
 
+            {/* Reset adjustments button */}
             {adjustedCount > 0 && (
               <button
                 onClick={() => resetSiManualAdjustments()}
-                className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 cursor-pointer"
+                className="bubbly-btn flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900 hover:bg-amber-100 cursor-pointer"
               >
-                <RotateCcw className="size-3.5" />
+                <RotateCcw className="size-3" />
                 <span>Reset {adjustedCount}</span>
               </button>
             )}
@@ -225,238 +229,231 @@ export default function SalesInvoicePrediction() {
         </div>
 
         {/* Forecast Table Container */}
-        <div className="mt-2 overflow-hidden rounded-xl border border-[#c79754]/30 bg-white">
+        <div className="mt-3 overflow-hidden rounded-xl border border-[#ebdcc8] bg-white">
           <div className="overflow-x-auto table-scroll max-h-[65vh]">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#c79754]/30 bg-[#fbf7f0] text-[#37150f] font-black text-center sticky top-0 z-20 shadow-sm">
-                  <th rowSpan={2} className="py-2.5 px-3 text-left sticky left-0 bg-[#fbf7f0] z-30 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] min-w-[110px]">
+                <tr className="border-b border-[#ebdcc8] bg-[#fbf7f0] text-[#37150f] font-black text-center sticky top-0 z-20 shadow-sm">
+                  <th rowSpan={2} className="py-2.5 px-3 text-left sticky left-0 bg-[#fbf7f0] z-30 border-r border-[#ebdcc8] min-w-[110px]">
                     Item Code
                   </th>
-                  <th rowSpan={2} className="py-2.5 px-3 text-left min-w-[180px]">
+                  <th rowSpan={2} className="py-2.5 px-3 text-left min-w-[170px]">
                     Description
                   </th>
                   <th rowSpan={2} className="py-2.5 px-2 text-center min-w-[90px]">
-                    10-Mo Trend
+                    Trend
                   </th>
-                  <th rowSpan={2} className="py-2.5 px-3 text-right bg-amber-50/70 border-r border-[#c79754]/20 min-w-[90px]">
+                  <th rowSpan={2} className="py-2.5 px-3 text-right bg-amber-50/70 border-r border-[#ebdcc8] min-w-[90px]">
                     Oct Actual
                   </th>
 
                   {/* Group 1: AI Model Prediction */}
-                  <th colSpan={3} className="py-1.5 px-2 bg-[#37150f]/10 border-r border-[#c79754]/30 text-xs font-black text-[#37150f]">
-                    🤖 Model Prediction (3 Months)
+                  <th colSpan={3} className="py-1.5 px-2 bg-[#37150f]/10 border-r border-[#ebdcc8] text-xs font-black text-[#37150f]">
+                    AI Model (3-Mo)
                   </th>
 
-                  {/* Group 2: Director Target (+10% MoM) */}
-                  <th colSpan={3} className="py-1.5 px-2 bg-[#be3937]/10 border-r border-[#c79754]/30 text-xs font-black text-[#be3937]">
-                    🎯 Manual 10% Addition
+                  {/* Group 2: Target (+10% MoM) */}
+                  <th colSpan={3} className="py-1.5 px-2 bg-[#91171d]/10 border-r border-[#ebdcc8] text-xs font-black text-[#91171d]">
+                    Target (+10% MoM)
                   </th>
 
                   <th rowSpan={2} className="py-2.5 px-3 text-right min-w-[80px]">
-                    Pack Size
+                    Pack
                   </th>
-                  <th rowSpan={2} className="py-2.5 px-3 text-center min-w-[140px]">
-                    Manual Override / Quick +10%
+                  <th rowSpan={2} className="py-2.5 px-3 text-center min-w-[130px]">
+                    Action
                   </th>
                 </tr>
-                <tr className="border-b-2 border-[#c79754]/30 bg-[#fbf7f0]/95 font-black text-[11px] text-[#37150f] sticky top-[29px] z-20 shadow-sm">
+                <tr className="border-b-2 border-[#ebdcc8] bg-[#fbf7f0]/95 font-black text-[11px] text-[#37150f] sticky top-[28px] z-20 shadow-sm">
                   {/* AI sub-headers */}
-                  <th className="py-1.5 px-2.5 text-right bg-[#37150f]/5 min-w-[85px]">Nov (AI)</th>
-                  <th className="py-1.5 px-2.5 text-right bg-[#37150f]/5 min-w-[85px]">Dec (AI)</th>
-                  <th className="py-1.5 px-2.5 text-right bg-[#37150f]/5 border-r border-[#c79754]/30 min-w-[85px]">Jan (AI)</th>
+                  <th className="py-1.5 px-2.5 text-right bg-[#37150f]/5 min-w-[80px]">Nov</th>
+                  <th className="py-1.5 px-2.5 text-right bg-[#37150f]/5 min-w-[80px]">Dec</th>
+                  <th className="py-1.5 px-2.5 text-right bg-[#37150f]/5 border-r border-[#ebdcc8] min-w-[80px]">Jan</th>
 
                   {/* Target sub-headers */}
-                  <th className="py-1.5 px-2.5 text-right bg-[#be3937]/5 font-black text-[#be3937] min-w-[90px]">Nov (+10%)</th>
-                  <th className="py-1.5 px-2.5 text-right bg-[#be3937]/5 font-black text-[#be3937] min-w-[90px]">Dec (+10%)</th>
-                  <th className="py-1.5 px-2.5 text-right bg-[#be3937]/5 font-black text-[#be3937] border-r border-[#c79754]/30 min-w-[90px]">Jan (+10%)</th>
+                  <th className="py-1.5 px-2.5 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[85px]">Nov (+10%)</th>
+                  <th className="py-1.5 px-2.5 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[85px]">Dec (+10%)</th>
+                  <th className="py-1.5 px-2.5 text-right bg-[#91171d]/5 font-black text-[#91171d] border-r border-[#ebdcc8] min-w-[85px]">Jan (+10%)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#c79754]/15 font-medium">
+              <tbody className="divide-y divide-[#ebdcc8]/70 font-medium">
                 {paginatedItems.map((it) => {
-                const isEditing = editingCode === it.code;
-                return (
-                  <tr
-                    key={it.code}
-                    className={`hover:bg-[#f5d275]/15 transition group ${
-                      it.isManual ? 'bg-amber-50/60' : ''
-                    }`}
-                  >
-                    {/* Sticky Item Code */}
-                    <td className="py-2 px-3 font-extrabold text-[#be3937] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
-                      {it.code}
-                    </td>
-                    <td className="py-2 px-3 max-w-[220px] truncate text-[#37150f]" title={it.desc}>
-                      {it.desc}
-                    </td>
-                    <td className="py-2 px-2 text-center">
-                      <div className="inline-block">
-                        <Sparkline history={it.qtyHistory} forecast={it.forecastQty} />
-                      </div>
-                    </td>
-                    <td className="py-2 px-3 text-right tabular-nums font-bold text-[#37150f] bg-amber-50/40 border-r border-[#c79754]/20">
-                      {fmtInt(it.lastQty)}
-                    </td>
-
-                    {/* AI Predictions */}
-                    <td className="py-2 px-2.5 text-right tabular-nums font-black text-[#37150f] bg-[#37150f]/5">
-                      {fmtInt(it.novAi)}
-                    </td>
-                    <td className="py-2 px-2.5 text-right tabular-nums font-medium text-[#37150f]/80 bg-[#37150f]/5">
-                      {fmtInt(it.decAi)}
-                    </td>
-                    <td className="py-2 px-2.5 text-right tabular-nums font-medium text-[#37150f]/80 bg-[#37150f]/5 border-r border-[#c79754]/20">
-                      {fmtInt(it.janAi)}
-                    </td>
-
-                    {/* Target +10% MoM */}
-                    <td className="py-2 px-2.5 text-right tabular-nums font-black text-[#be3937] bg-[#be3937]/5">
-                      {fmtInt(it.novTarget)}
-                    </td>
-                    <td className="py-2 px-2.5 text-right tabular-nums font-bold text-[#be3937]/90 bg-[#be3937]/5">
-                      {fmtInt(it.decTarget)}
-                    </td>
-                    <td className="py-2 px-2.5 text-right tabular-nums font-bold text-[#be3937]/90 bg-[#be3937]/5 border-r border-[#c79754]/20">
-                      {fmtInt(it.janTarget)}
-                    </td>
-
-                    <td className="py-2 px-3 text-right tabular-nums text-[#37150f]/70 font-bold whitespace-nowrap">
-                      {it.packSize ? `${it.packSize} pcs` : '-'}
-                    </td>
-
-                    {/* Action / Manual Override */}
-                    <td className="py-2 px-3 text-center whitespace-nowrap">
-                      {isEditing ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <input
-                            type="text"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveEdit(it.code);
-                              if (e.key === 'Escape') handleCancelEdit();
-                            }}
-                            autoFocus
-                            placeholder="Qty"
-                            className="w-16 rounded border border-[#be3937] px-1.5 py-0.5 text-xs text-right font-black"
-                          />
-                          <button
-                            onClick={() => handleSaveEdit(it.code)}
-                            className="p-1 text-emerald-700 hover:text-emerald-900 cursor-pointer"
-                            title="Save custom quantity"
-                          >
-                            <Check className="size-3.5" />
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="p-1 text-slate-500 hover:text-slate-800 cursor-pointer"
-                            title="Cancel"
-                          >
-                            <X className="size-3.5" />
-                          </button>
+                  const isEditing = editingCode === it.code;
+                  return (
+                    <tr
+                      key={it.code}
+                      className={`hover:bg-[#f5d275]/15 transition group ${
+                        it.isManual ? 'bg-amber-50/60' : ''
+                      }`}
+                    >
+                      {/* Sticky Item Code */}
+                      <td className="py-2 px-3 font-extrabold text-[#91171d] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#ebdcc8]">
+                        {it.code}
+                      </td>
+                      <td className="py-2 px-3 max-w-[220px] truncate text-[#37150f]" title={it.desc}>
+                        {it.desc}
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        <div className="inline-block">
+                          <Sparkline history={it.qtyHistory} forecast={it.forecastQty} />
                         </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Quick 10% Apply Button */}
-                          <button
-                            type="button"
-                            onClick={() => setSiManualAdjustment(it.code, it.novTarget)}
-                            className="rounded-md bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-800 transition cursor-pointer"
-                            title="Set Nov prediction to +10% target"
-                          >
-                            Use +10%
-                          </button>
+                      </td>
+                      <td className="py-2 px-3 text-right tabular-nums font-bold text-[#37150f] bg-amber-50/40 border-r border-[#ebdcc8]">
+                        {fmtInt(it.lastQty)}
+                      </td>
 
-                          {/* Custom Edit Button */}
-                          <button
-                            onClick={() => handleStartEdit(it.code, it.forecastQty)}
-                            className="p-1 text-[#37150f]/50 hover:text-[#be3937] cursor-pointer"
-                            title="Custom quantity edit"
-                          >
-                            <Edit2 className="size-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {/* Totals Summary Row */}
-            <tfoot>
-              <tr className="border-t-2 border-[#c79754]/40 bg-[#fbf7f0] font-black text-[#37150f]">
-                <td className="py-2.5 px-3 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#c79754]/20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
-                  TOTALS
-                </td>
-                <td colSpan={2} className="py-2.5 px-3 text-xs font-extrabold text-[#37150f]/70">
-                  {filteredItems.length} products
-                </td>
-                <td className="py-2.5 px-3 text-right tabular-nums bg-amber-50/80 border-r border-[#c79754]/20">
-                  {fmtInt(octActual)}
-                </td>
-                <td className="py-2.5 px-2.5 text-right tabular-nums bg-[#37150f]/10">
-                  {fmtInt(forecast.totals.novAiTotal)}
-                </td>
-                <td className="py-2.5 px-2.5 text-right tabular-nums bg-[#37150f]/10">
-                  {fmtInt(forecast.totals.decAiTotal)}
-                </td>
-                <td className="py-2.5 px-2.5 text-right tabular-nums bg-[#37150f]/10 border-r border-[#c79754]/20">
-                  {fmtInt(forecast.totals.janAiTotal)}
-                </td>
-                <td className="py-2.5 px-2.5 text-right tabular-nums font-black text-[#be3937] bg-[#be3937]/10">
-                  {fmtInt(forecast.totals.novTargetTotal)}
-                </td>
-                <td className="py-2.5 px-2.5 text-right tabular-nums font-black text-[#be3937] bg-[#be3937]/10">
-                  {fmtInt(forecast.totals.decTargetTotal)}
-                </td>
-                <td className="py-2.5 px-2.5 text-right tabular-nums font-black text-[#be3937] bg-[#be3937]/10 border-r border-[#c79754]/20">
-                  {fmtInt(forecast.totals.janTargetTotal)}
-                </td>
-                <td colSpan={2} className="py-2.5 px-3 text-center text-[10px] text-[#37150f]/50">
-                  All units in pieces (pcs)
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+                      {/* AI Predictions */}
+                      <td className="py-2 px-2.5 text-right tabular-nums font-black text-[#37150f] bg-[#37150f]/5">
+                        {fmtInt(it.novAi)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right tabular-nums font-medium text-[#37150f]/80 bg-[#37150f]/5">
+                        {fmtInt(it.decAi)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right tabular-nums font-medium text-[#37150f]/80 bg-[#37150f]/5 border-r border-[#ebdcc8]">
+                        {fmtInt(it.janAi)}
+                      </td>
+
+                      {/* Target +10% MoM */}
+                      <td className="py-2 px-2.5 text-right tabular-nums font-black text-[#91171d] bg-[#91171d]/5">
+                        {fmtInt(it.novTarget)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right tabular-nums font-bold text-[#91171d]/90 bg-[#91171d]/5">
+                        {fmtInt(it.decTarget)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right tabular-nums font-bold text-[#91171d]/90 bg-[#91171d]/5 border-r border-[#ebdcc8]">
+                        {fmtInt(it.janTarget)}
+                      </td>
+
+                      <td className="py-2 px-3 text-right tabular-nums text-[#37150f]/70 font-bold whitespace-nowrap">
+                        {it.packSize ? `${it.packSize} pcs` : '-'}
+                      </td>
+
+                      {/* Action / Quick Apply */}
+                      <td className="py-2 px-3 text-center whitespace-nowrap">
+                        {isEditing ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveEdit(it.code);
+                                if (e.key === 'Escape') handleCancelEdit();
+                              }}
+                              autoFocus
+                              placeholder="Qty"
+                              className="w-16 rounded-full border border-[#91171d] px-2 py-0.5 text-xs text-right font-black"
+                            />
+                            <button
+                              onClick={() => handleSaveEdit(it.code)}
+                              className="bubbly-btn p-1 text-emerald-700 hover:text-emerald-900 cursor-pointer"
+                              title="Save"
+                            >
+                              <Check className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="bubbly-btn p-1 text-stone-500 hover:text-stone-800 cursor-pointer"
+                              title="Cancel"
+                            >
+                              <X className="size-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSiManualAdjustment(it.code, it.novTarget)}
+                              className="bubbly-btn rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 cursor-pointer"
+                              title="Apply +10% target to Nov"
+                            >
+                              Use +10%
+                            </button>
+                            <button
+                              onClick={() => handleStartEdit(it.code, it.forecastQty)}
+                              className="bubbly-btn p-1 text-[#37150f]/50 hover:text-[#91171d] cursor-pointer"
+                              title="Custom edit"
+                            >
+                              <Edit2 className="size-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              {/* Totals Summary Row */}
+              <tfoot>
+                <tr className="border-t-2 border-[#ebdcc8] bg-[#fbf7f0] font-black text-[#37150f]">
+                  <td className="py-2.5 px-3 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#ebdcc8]">
+                    TOTALS
+                  </td>
+                  <td colSpan={2} className="py-2.5 px-3 text-xs font-bold text-[#37150f]/70">
+                    {filteredItems.length} products
+                  </td>
+                  <td className="py-2.5 px-3 text-right tabular-nums bg-amber-50/80 border-r border-[#ebdcc8]">
+                    {fmtInt(octActual)}
+                  </td>
+                  <td className="py-2.5 px-2.5 text-right tabular-nums bg-[#37150f]/10">
+                    {fmtInt(forecast.totals.novAiTotal)}
+                  </td>
+                  <td className="py-2.5 px-2.5 text-right tabular-nums bg-[#37150f]/10">
+                    {fmtInt(forecast.totals.decAiTotal)}
+                  </td>
+                  <td className="py-2.5 px-2.5 text-right tabular-nums bg-[#37150f]/10 border-r border-[#ebdcc8]">
+                    {fmtInt(forecast.totals.janAiTotal)}
+                  </td>
+                  <td className="py-2.5 px-2.5 text-right tabular-nums font-black text-[#91171d] bg-[#91171d]/10">
+                    {fmtInt(forecast.totals.novTargetTotal)}
+                  </td>
+                  <td className="py-2.5 px-2.5 text-right tabular-nums font-black text-[#91171d] bg-[#91171d]/10">
+                    {fmtInt(forecast.totals.decTargetTotal)}
+                  </td>
+                  <td className="py-2.5 px-2.5 text-right tabular-nums font-black text-[#91171d] bg-[#91171d]/10 border-r border-[#ebdcc8]">
+                    {fmtInt(forecast.totals.janTargetTotal)}
+                  </td>
+                  <td colSpan={2} className="py-2.5 px-3 text-center text-[10px] text-[#37150f]/50">
+                    Units in pcs
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
+
+        {/* Compact Pagination Bar */}
+        {pageSize !== -1 && totalPages > 1 && (
+          <div className="mt-3 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-[#ebdcc8] pt-3 text-xs font-bold text-[#37150f]/80">
+            <div>
+              {(currentPage - 1) * pageSize + 1}–{Math.min(filteredItems.length, currentPage * pageSize)} of {filteredItems.length} products
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="bubbly-btn grid size-8 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
+                title="Previous"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <span className="px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="bubbly-btn grid size-8 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
+                title="Next"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Bottom Pagination Bar */}
-      {pageSize !== -1 && totalPages > 1 && (
-        <div className="mt-3 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-[#c79754]/20 pt-3 text-xs font-bold text-[#37150f]/80">
-          <div>
-            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(filteredItems.length, currentPage * pageSize)} of {filteredItems.length} products
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentPage((p) => Math.max(1, p - 1));
-              }}
-              disabled={currentPage <= 1}
-              className="flex items-center gap-1 rounded-lg border border-[#c79754]/40 bg-[#fbf7f0] px-3 py-1.5 hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronLeft className="size-3.5" />
-              <span>Previous</span>
-            </button>
-            <span className="px-2">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentPage((p) => Math.min(totalPages, p + 1));
-              }}
-              disabled={currentPage >= totalPages}
-              className="flex items-center gap-1 rounded-lg border border-[#c79754]/40 bg-[#fbf7f0] px-3 py-1.5 hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
-            >
-              <span>Next</span>
-              <ChevronRight className="size-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
-  </div>
   );
 }
