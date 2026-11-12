@@ -194,17 +194,17 @@ export default function SalesInvoiceDashboard() {
   }, [selectedCompanyKey]);
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 pb-12">
-      {/* Streamlined Bubbly Filter Bar */}
-      <div className="w-full rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-3.5 sm:p-5 shadow-sm">
+    <div className="w-full space-y-5 sm:space-y-6 pb-12">
+      {/* Streamlined Bubbly Filter Bar with Better Sizing */}
+      <div className="w-full rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#c79754]" />
+              <Search className="absolute left-4 top-1/2 size-4.5 -translate-y-1/2 text-[#c79754]" />
               <input
                 type="text"
-                placeholder="Search invoice product code or name…"
+                placeholder="Search invoice product code or description…"
                 value={
                   selectedItemCode
                     ? `${selectedItemCode} • ${si.items.find((i) => i.code === selectedItemCode)?.desc || ''}`
@@ -216,7 +216,7 @@ export default function SalesInvoiceDashboard() {
                   setIsItemDropdownOpen(true);
                 }}
                 onFocus={() => setIsItemDropdownOpen(true)}
-                className="w-full rounded-full border border-[#c79754]/30 bg-[#fbf7f0]/70 py-2 sm:py-2.5 pl-10 pr-9 text-xs sm:text-sm font-bold text-[#37150f] placeholder:text-[#37150f]/40 focus:border-[#91171d] focus:bg-white focus:outline-none transition-colors"
+                className="w-full rounded-full border border-[#c79754]/30 bg-[#fbf7f0]/70 py-2.5 sm:py-3 pl-11 pr-10 text-sm sm:text-base font-bold text-[#37150f] placeholder:text-[#37150f]/40 focus:border-[#91171d] focus:bg-white focus:outline-none transition-colors"
               />
               {(selectedItemCode || itemSearchInput) && (
                 <button
@@ -227,7 +227,7 @@ export default function SalesInvoiceDashboard() {
                     setIsItemDropdownOpen(false);
                     setCurrentPage(1);
                   }}
-                  className="bubbly-btn absolute right-3 top-1/2 -translate-y-1/2 text-[#37150f]/50 hover:text-[#91171d]"
+                  className="bubbly-btn absolute right-3.5 top-1/2 -translate-y-1/2 text-[#37150f]/50 hover:text-[#91171d] p-1"
                   title="Clear search"
                 >
                   <X className="size-4" />
@@ -236,9 +236,9 @@ export default function SalesInvoiceDashboard() {
 
               {/* Item Autocomplete Dropdown */}
               {isItemDropdownOpen && !selectedItemCode && (
-                <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-[#c79754]/30 bg-white p-1.5 shadow-xl">
+                <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-[#c79754]/30 bg-white p-2 shadow-xl">
                   {filteredItemList.length === 0 ? (
-                    <div className="p-3 text-center text-xs text-stone-500">No items found</div>
+                    <div className="p-3 text-center text-sm font-semibold text-stone-500">No items found</div>
                   ) : (
                     filteredItemList.slice(0, 25).map((it) => (
                       <button
@@ -250,12 +250,12 @@ export default function SalesInvoiceDashboard() {
                           setIsItemDropdownOpen(false);
                           setCurrentPage(1);
                         }}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs hover:bg-[#f5d275]/20 cursor-pointer transition-colors"
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left text-sm hover:bg-[#f5d275]/20 cursor-pointer transition-colors"
                       >
-                        <Package className="size-3.5 shrink-0 text-[#91171d]" />
+                        <Package className="size-4 shrink-0 text-[#91171d]" />
                         <div className="flex-1 truncate">
                           <span className="font-extrabold text-[#37150f]">{it.code}</span>
-                          <span className="ml-1.5 text-[#37150f]/70 truncate">{it.desc}</span>
+                          <span className="ml-2 text-[#37150f]/75 font-medium truncate">{it.desc}</span>
                         </div>
                       </button>
                     ))
@@ -265,15 +265,15 @@ export default function SalesInvoiceDashboard() {
             </div>
 
             {/* Company Dropdown Pill */}
-            <div className="relative sm:w-64">
-              <Building2 className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#c79754]" />
+            <div className="relative sm:w-72">
+              <Building2 className="absolute left-4 top-1/2 size-4.5 -translate-y-1/2 text-[#c79754]" />
               <select
                 value={selectedCompanyKey}
                 onChange={(e) => {
                   setSelectedCompanyKey(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full appearance-none rounded-full border border-[#c79754]/30 bg-[#fbf7f0]/70 py-2 sm:py-2.5 pl-10 pr-8 text-xs sm:text-sm font-bold text-[#37150f] focus:border-[#91171d] focus:bg-white focus:outline-none cursor-pointer"
+                className="w-full appearance-none rounded-full border border-[#c79754]/30 bg-[#fbf7f0]/70 py-2.5 sm:py-3 pl-11 pr-9 text-sm sm:text-base font-bold text-[#37150f] focus:border-[#91171d] focus:bg-white focus:outline-none cursor-pointer"
               >
                 <option value="all">All Companies ({si.companies.length})</option>
                 {si.companies.map((c) => (
@@ -289,26 +289,26 @@ export default function SalesInvoiceDashboard() {
           {(selectedCompanyKey !== 'all' || selectedItemCode) && (
             <div className="flex flex-wrap items-center gap-2 pt-1 md:pt-0">
               {selectedCompanyKey !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#91171d]/10 px-3 py-1 text-xs font-bold text-[#91171d]">
-                  <span className="truncate max-w-[140px] sm:max-w-[200px]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#91171d]/10 px-3.5 py-1.5 text-xs sm:text-sm font-bold text-[#91171d]">
+                  <span className="truncate max-w-[150px] sm:max-w-[220px]">
                     {activeCompanyDisplayName}
                   </span>
                   <button
                     onClick={() => setSelectedCompanyKey('all')}
                     className="hover:text-black cursor-pointer"
                   >
-                    <X className="size-3" />
+                    <X className="size-3.5" />
                   </button>
                 </span>
               )}
               {selectedItemCode && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5d275]/60 px-3 py-1 text-xs font-bold text-[#37150f]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#f5d275]/60 px-3.5 py-1.5 text-xs sm:text-sm font-bold text-[#37150f]">
                   <span>{selectedItemCode}</span>
                   <button
                     onClick={() => setSelectedItemCode('')}
                     className="hover:text-black cursor-pointer"
                   >
-                    <X className="size-3" />
+                    <X className="size-3.5" />
                   </button>
                 </span>
               )}
@@ -320,7 +320,7 @@ export default function SalesInvoiceDashboard() {
                   setItemSearchInput('');
                   setCurrentPage(1);
                 }}
-                className="bubbly-btn text-xs font-bold text-[#91171d] hover:underline cursor-pointer px-1"
+                className="bubbly-btn text-xs sm:text-sm font-bold text-[#91171d] hover:underline cursor-pointer px-2"
               >
                 Reset
               </button>
@@ -329,59 +329,59 @@ export default function SalesInvoiceDashboard() {
         </div>
       </div>
 
-      {/* Responsive Bubbly KPI Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {/* Prominent Bubbly KPI Grid */}
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-5 lg:grid-cols-4">
         {/* KPI 1 */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Invoiced Units</span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-[#91171d]/10 text-[#91171d]">
-              <FileSpreadsheet className="size-4" />
+          <div className="flex items-center justify-between text-[#37150f]/70">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">Invoiced Units</span>
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-[#91171d]/10 text-[#91171d]">
+              <FileSpreadsheet className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-[#37150f] tracking-tight">
-            {fmtInt(totalVolume)} <span className="text-xs font-bold text-[#c79754]">units</span>
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
+            {fmtInt(totalVolume)} <span className="text-xs sm:text-sm font-bold text-[#c79754]">units</span>
           </div>
         </div>
 
         {/* KPI 2 */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Invoiced SKUs</span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-[#be3937]/10 text-[#be3937]">
-              <Package className="size-4" />
+          <div className="flex items-center justify-between text-[#37150f]/70">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">Invoiced SKUs</span>
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-[#be3937]/10 text-[#be3937]">
+              <Package className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-[#37150f] tracking-tight">
-            {itemAggregates.length} <span className="text-xs font-bold text-[#c79754]">SKUs</span>
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
+            {itemAggregates.length} <span className="text-xs sm:text-sm font-bold text-[#c79754]">SKUs</span>
           </div>
         </div>
 
         {/* KPI 3 */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Monthly Avg</span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-[#959242]/15 text-[#959242]">
-              <Calendar className="size-4" />
+          <div className="flex items-center justify-between text-[#37150f]/70">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">Monthly Avg</span>
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-[#959242]/15 text-[#959242]">
+              <Calendar className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-[#37150f] tracking-tight">
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
             {fmtCompact(Math.round(totalVolume / 10))}{' '}
-            <span className="text-xs font-bold text-[#c79754]">/mo</span>
+            <span className="text-xs sm:text-sm font-bold text-[#c79754]">/mo</span>
           </div>
         </div>
 
         {/* KPI 4 */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Billed Clients</span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-[#c79754]/20 text-[#37150f]">
-              <Building2 className="size-4" />
+          <div className="flex items-center justify-between text-[#37150f]/70">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">Billed Clients</span>
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-[#c79754]/20 text-[#37150f]">
+              <Building2 className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-[#37150f] tracking-tight">
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
             {selectedCompanyKey === 'all' ? si.companies.length : 1}{' '}
-            <span className="text-xs font-bold text-[#c79754]">clients</span>
+            <span className="text-xs sm:text-sm font-bold text-[#c79754]">clients</span>
           </div>
         </div>
       </div>
@@ -389,28 +389,28 @@ export default function SalesInvoiceDashboard() {
       {/* Main Graph & Deep Dive Section */}
       {selectedItemData ? (
         /* Single Item Deep Dive */
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {/* Trend Chart (2 cols) */}
-          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm lg:col-span-2">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#ebdcc8] pb-3">
+          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm lg:col-span-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#ebdcc8] pb-4">
               <div>
-                <span className="inline-block rounded-full bg-[#91171d] px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#f5d275]">
+                <span className="inline-block rounded-full bg-[#91171d] px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#f5d275]">
                   Invoice Trend
                 </span>
-                <h3 className="mt-1 text-base sm:text-lg font-black text-[#37150f]">
+                <h3 className="mt-1.5 text-lg sm:text-xl font-black text-[#37150f]">
                   {selectedItemData.code}
                 </h3>
-                <p className="text-xs font-medium text-[#37150f]/70 truncate max-w-md">{selectedItemData.desc}</p>
+                <p className="text-sm font-medium text-[#37150f]/75 truncate max-w-lg">{selectedItemData.desc}</p>
               </div>
               <div className="text-left sm:text-right">
-                <div className="text-[11px] font-bold text-[#c79754] uppercase">10-Mo Total</div>
-                <div className="text-xl font-black text-[#91171d]">
-                  {fmtInt(selectedItemData.totalQty)} pcs
+                <div className="text-xs font-bold text-[#c79754] uppercase tracking-wider">10-Month Total</div>
+                <div className="text-2xl sm:text-3xl font-black text-[#91171d]">
+                  {fmtInt(selectedItemData.totalQty)} <span className="text-sm font-bold">pcs</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 h-60 sm:h-72 w-full">
+            <div className="mt-4 h-64 sm:h-76 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                   data={selectedItemData.monthlyList}
@@ -419,11 +419,11 @@ export default function SalesInvoiceDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f4ecdf" />
                   <XAxis
                     dataKey="month"
-                    tick={{ fill: '#37150f', fontSize: 11, fontWeight: 700 }}
+                    tick={{ fill: '#37150f', fontSize: 12, fontWeight: 700 }}
                     stroke="#c79754"
                   />
                   <YAxis
-                    tick={{ fill: '#37150f', fontSize: 11 }}
+                    tick={{ fill: '#37150f', fontSize: 12, fontWeight: 600 }}
                     stroke="#c79754"
                     tickFormatter={(v) => fmtCompact(v)}
                   />
@@ -432,11 +432,11 @@ export default function SalesInvoiceDashboard() {
                       if (!active || !payload?.length) return null;
                       const d = payload[0].payload;
                       return (
-                        <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3 text-white shadow-xl">
+                        <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
                           <div className="text-xs font-bold text-[#f5d275]">
                             {d.month} 2026 ({d.period})
                           </div>
-                          <div className="mt-1 text-sm font-black">
+                          <div className="mt-1 text-base font-black">
                             Invoiced: {fmtInt(d.qty)} pcs
                           </div>
                         </div>
@@ -448,40 +448,40 @@ export default function SalesInvoiceDashboard() {
                     name="Invoiced"
                     fill="#91171d"
                     radius={[8, 8, 0, 0]}
-                    maxBarSize={44}
+                    maxBarSize={48}
                   />
                   <Line
                     type="linear"
                     dataKey="qty"
                     stroke="#f5d275"
                     strokeWidth={3}
-                    dot={{ fill: '#be3937', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                    dot={{ fill: '#be3937', r: 5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs font-bold text-[#37150f]/70 border-t border-[#ebdcc8] pt-2.5">
+            <div className="mt-3 flex items-center justify-between text-xs sm:text-sm font-bold text-[#37150f]/75 border-t border-[#ebdcc8] pt-3">
               <span>Avg: {fmtInt(selectedItemData.avgMonthly)} pcs/mo</span>
               <span>Peak: {selectedItemData.peakMonth}</span>
             </div>
           </div>
 
           {/* Companies Invoiced for This Item */}
-          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-            <h4 className="text-sm font-black text-[#37150f] flex items-center gap-2">
-              <Building2 className="size-4 text-[#91171d]" />
+          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 shadow-sm">
+            <h4 className="text-base font-black text-[#37150f] flex items-center gap-2">
+              <Building2 className="size-4.5 text-[#91171d]" />
               Invoiced Clients ({selectedItemData.companyOrders.length})
             </h4>
 
-            <div className="mt-3 max-h-72 overflow-y-auto space-y-2 pr-1 table-scroll">
+            <div className="mt-3 max-h-80 overflow-y-auto space-y-2.5 pr-1 table-scroll">
               {selectedItemData.companyOrders.map((co, idx) => (
                 <div
                   key={`${co.code}-${co.name}`}
-                  className="flex items-center justify-between rounded-xl border border-[#ebdcc8] bg-[#fbf7f0]/60 p-2.5 text-xs"
+                  className="flex items-center justify-between rounded-xl border border-[#ebdcc8] bg-[#fbf7f0]/60 p-3 text-xs sm:text-sm"
                 >
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="grid size-5 place-items-center rounded-full bg-[#91171d]/10 text-[10px] font-black text-[#91171d] shrink-0">
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className="grid size-6 place-items-center rounded-full bg-[#91171d]/10 text-xs font-black text-[#91171d] shrink-0">
                       {idx + 1}
                     </span>
                     <span className="font-bold text-[#37150f] truncate">{co.name}</span>
@@ -496,25 +496,27 @@ export default function SalesInvoiceDashboard() {
         </div>
       ) : (
         /* Overall Monthly Sales Invoice Trend View */
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {/* Overall Trend Chart (2 cols) */}
-          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm lg:col-span-2">
-            <div className="flex items-center justify-between border-b border-[#ebdcc8] pb-3">
+          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm lg:col-span-2">
+            <div className="flex items-center justify-between border-b border-[#ebdcc8] pb-4">
               <div>
-                <span className="inline-block rounded-full bg-[#37150f] px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#f5d275]">
+                <span className="inline-block rounded-full bg-[#37150f] px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#f5d275]">
                   Sales Invoice Trend
                 </span>
-                <h3 className="mt-1 text-base sm:text-lg font-black text-[#37150f]">
+                <h3 className="mt-1.5 text-lg sm:text-xl font-black text-[#37150f]">
                   Monthly Volume (Jan – Oct 2026)
                 </h3>
               </div>
               <div className="text-right">
-                <div className="text-[11px] font-bold text-[#c79754] uppercase">Total Units</div>
-                <div className="text-xl font-black text-[#91171d]">{fmtInt(totalVolume)} pcs</div>
+                <div className="text-xs font-bold text-[#c79754] uppercase tracking-wider">Total Units</div>
+                <div className="text-2xl sm:text-3xl font-black text-[#91171d]">
+                  {fmtInt(totalVolume)} <span className="text-sm font-bold">pcs</span>
+                </div>
               </div>
             </div>
 
-            <div className="mt-4 h-60 sm:h-72 w-full">
+            <div className="mt-4 h-64 sm:h-76 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                   data={overallMonthlyTrend}
@@ -523,11 +525,11 @@ export default function SalesInvoiceDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f4ecdf" />
                   <XAxis
                     dataKey="month"
-                    tick={{ fill: '#37150f', fontSize: 11, fontWeight: 700 }}
+                    tick={{ fill: '#37150f', fontSize: 12, fontWeight: 700 }}
                     stroke="#c79754"
                   />
                   <YAxis
-                    tick={{ fill: '#37150f', fontSize: 11 }}
+                    tick={{ fill: '#37150f', fontSize: 12, fontWeight: 600 }}
                     stroke="#c79754"
                     tickFormatter={(v) => fmtCompact(v)}
                   />
@@ -536,11 +538,11 @@ export default function SalesInvoiceDashboard() {
                       if (!active || !payload?.length) return null;
                       const d = payload[0].payload;
                       return (
-                        <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3 text-white shadow-xl">
+                        <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
                           <div className="text-xs font-bold text-[#f5d275]">
                             {d.month} 2026 ({d.period})
                           </div>
-                          <div className="mt-1 text-sm font-black">
+                          <div className="mt-1 text-base font-black">
                             Invoiced: {fmtInt(d.qty)} pcs
                           </div>
                         </div>
@@ -552,14 +554,14 @@ export default function SalesInvoiceDashboard() {
                     name="Invoiced"
                     fill="#91171d"
                     radius={[8, 8, 0, 0]}
-                    maxBarSize={44}
+                    maxBarSize={48}
                   />
                   <Line
                     type="linear"
                     dataKey="qty"
                     stroke="#f5d275"
                     strokeWidth={3}
-                    dot={{ fill: '#be3937', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                    dot={{ fill: '#be3937', r: 5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -567,27 +569,27 @@ export default function SalesInvoiceDashboard() {
           </div>
 
           {/* Top 10 Invoiced Items */}
-          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-            <h4 className="text-sm font-black text-[#37150f] flex items-center gap-2">
-              <TrendingUp className="size-4 text-[#91171d]" />
+          <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 shadow-sm">
+            <h4 className="text-base font-black text-[#37150f] flex items-center gap-2">
+              <TrendingUp className="size-4.5 text-[#91171d]" />
               Top 10 Products (2026)
             </h4>
 
-            <div className="mt-3 max-h-72 overflow-y-auto space-y-2 pr-1 table-scroll">
+            <div className="mt-3 max-h-80 overflow-y-auto space-y-2.5 pr-1 table-scroll">
               {top10Items.map((it, idx) => (
                 <button
                   key={it.code}
                   type="button"
                   onClick={() => setSelectedItemCode(it.code)}
-                  className="bubbly-btn w-full flex items-center justify-between rounded-xl border border-[#ebdcc8] bg-[#fbf7f0]/60 p-2.5 text-xs text-left hover:border-[#91171d] hover:bg-white transition cursor-pointer"
+                  className="bubbly-btn w-full flex items-center justify-between rounded-xl border border-[#ebdcc8] bg-[#fbf7f0]/60 p-3 text-xs sm:text-sm text-left hover:border-[#91171d] hover:bg-white transition cursor-pointer"
                 >
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="grid size-5 place-items-center rounded-full bg-[#91171d] text-[10px] font-black text-[#f5d275] shrink-0">
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className="grid size-6 place-items-center rounded-full bg-[#91171d] text-xs font-black text-[#f5d275] shrink-0">
                       {idx + 1}
                     </span>
                     <div className="truncate">
                       <div className="font-extrabold text-[#37150f] truncate">{it.code}</div>
-                      <div className="text-[10px] text-[#37150f]/70 truncate">{it.desc}</div>
+                      <div className="text-xs text-[#37150f]/70 font-medium truncate">{it.desc}</div>
                     </div>
                   </div>
                   <span className="font-black text-[#91171d] shrink-0 ml-2">
@@ -601,52 +603,52 @@ export default function SalesInvoiceDashboard() {
       )}
 
       {/* Full Monthly Breakdown Data Table */}
-      <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-3">
-          <h3 className="text-base font-black text-[#37150f]">
+      <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-4">
+          <h3 className="text-lg font-black text-[#37150f]">
             Monthly Invoices by Product
           </h3>
 
           {/* Compact Pagination */}
-          <div className="flex items-center gap-2 text-xs font-bold self-end sm:self-auto">
+          <div className="flex items-center gap-2 text-sm font-bold self-end sm:self-auto">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="bubbly-btn grid size-8 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
+              className="bubbly-btn grid size-8.5 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
               title="Previous page"
             >
-              <ChevronLeft className="size-4" />
+              <ChevronLeft className="size-4.5" />
             </button>
-            <span className="text-[#37150f] px-2 font-bold">
+            <span className="text-[#37150f] px-2 font-extrabold">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className="bubbly-btn grid size-8 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
+              className="bubbly-btn grid size-8.5 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
               title="Next page"
             >
-              <ChevronRight className="size-4" />
+              <ChevronRight className="size-4.5" />
             </button>
           </div>
         </div>
 
-        {/* Responsive Table with Sticky Item Code Column */}
-        <div className="mt-3 overflow-x-auto table-scroll rounded-xl border border-[#ebdcc8] bg-white">
-          <table className="w-full text-left text-xs border-collapse">
+        {/* Responsive Table with Larger Legible Font */}
+        <div className="mt-3.5 overflow-x-auto table-scroll rounded-xl border border-[#ebdcc8] bg-white">
+          <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-[#ebdcc8] bg-[#fbf7f0] font-black text-[#37150f]">
-                <th className="py-2.5 px-3 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#ebdcc8]">
+                <th className="py-3 px-3.5 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#ebdcc8] whitespace-nowrap">
                   Item Code
                 </th>
-                <th className="py-2.5 px-3 min-w-[160px]">Description</th>
+                <th className="py-3 px-3.5 min-w-[180px]">Description</th>
                 {PERIOD_KEYS.map((p) => (
-                  <th key={p} className="py-2.5 px-2 text-right whitespace-nowrap">
+                  <th key={p} className="py-3 px-2.5 text-right whitespace-nowrap">
                     {PERIOD_TO_SHORT[p]}
                   </th>
                 ))}
-                <th className="py-2.5 px-3 text-right whitespace-nowrap">Total</th>
-                <th className="py-2.5 px-2 text-center whitespace-nowrap">Action</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap">Total</th>
+                <th className="py-3 px-2.5 text-center whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#ebdcc8]/70 font-medium">
@@ -657,26 +659,26 @@ export default function SalesInvoiceDashboard() {
                     selectedItemCode === it.code ? 'bg-[#f5d275]/25 font-bold' : ''
                   }`}
                 >
-                  <td className="py-2.5 px-3 font-extrabold text-[#91171d] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#ebdcc8]">
+                  <td className="py-3 px-3.5 font-extrabold text-[#91171d] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#ebdcc8] whitespace-nowrap">
                     {it.code}
                   </td>
-                  <td className="py-2.5 px-3 max-w-[220px] truncate text-[#37150f]">{it.desc}</td>
+                  <td className="py-3 px-3.5 max-w-[240px] truncate text-[#37150f] font-semibold">{it.desc}</td>
                   {PERIOD_KEYS.map((p) => (
-                    <td key={p} className="py-2.5 px-2 text-right tabular-nums text-[#37150f]">
+                    <td key={p} className="py-3 px-2.5 text-right tabular-nums text-[#37150f] font-bold">
                       {it.monthly[p] ? fmtInt(it.monthly[p]) : '-'}
                     </td>
                   ))}
-                  <td className="py-2.5 px-3 text-right font-black text-[#91171d] tabular-nums">
+                  <td className="py-3 px-3.5 text-right font-black text-[#91171d] tabular-nums text-base">
                     {fmtInt(it.totalQty)}
                   </td>
-                  <td className="py-2.5 px-2 text-center">
+                  <td className="py-3 px-2.5 text-center">
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedItemCode(it.code);
                         window.scrollTo({ top: 120, behavior: 'smooth' });
                       }}
-                      className="bubbly-btn rounded-full bg-[#37150f] hover:bg-[#91171d] px-3 py-1 text-[11px] font-bold text-[#f5d275] transition cursor-pointer"
+                      className="bubbly-btn rounded-full bg-[#37150f] hover:bg-[#91171d] px-3.5 py-1.5 text-xs font-bold text-[#f5d275] transition cursor-pointer"
                     >
                       Trend
                     </button>

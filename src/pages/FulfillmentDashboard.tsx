@@ -81,17 +81,17 @@ export default function FulfillmentDashboard() {
   }, [tableItems, currentPage, pageSize]);
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 pb-12">
+    <div className="w-full space-y-5 sm:space-y-6 pb-12">
       {/* Search and Bubbly Status Pills */}
-      <div className="w-full rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-3.5 sm:p-5 shadow-sm">
+      <div className="w-full rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Search Bar */}
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#c79754]" />
+              <Search className="absolute left-4 top-1/2 size-4.5 -translate-y-1/2 text-[#c79754]" />
               <input
                 type="text"
-                placeholder="Search item code or name for SO vs SI…"
+                placeholder="Search item code or description for SO vs SI…"
                 value={
                   selectedItemCode
                     ? `${selectedItemCode} • ${selectedItem?.itemDesc || ''}`
@@ -103,7 +103,7 @@ export default function FulfillmentDashboard() {
                   setIsItemDropdownOpen(true);
                 }}
                 onFocus={() => setIsItemDropdownOpen(true)}
-                className="w-full rounded-full border border-[#c79754]/30 bg-[#fbf7f0]/70 py-2 sm:py-2.5 pl-10 pr-9 text-xs sm:text-sm font-bold text-[#37150f] placeholder:text-[#37150f]/40 focus:border-[#91171d] focus:bg-white focus:outline-none transition-colors"
+                className="w-full rounded-full border border-[#c79754]/30 bg-[#fbf7f0]/70 py-2.5 sm:py-3 pl-11 pr-10 text-sm sm:text-base font-bold text-[#37150f] placeholder:text-[#37150f]/40 focus:border-[#91171d] focus:bg-white focus:outline-none transition-colors"
               />
               {(selectedItemCode || itemSearchInput) && (
                 <button
@@ -114,7 +114,7 @@ export default function FulfillmentDashboard() {
                     setIsItemDropdownOpen(false);
                     setCurrentPage(1);
                   }}
-                  className="bubbly-btn absolute right-3 top-1/2 -translate-y-1/2 text-[#37150f]/50 hover:text-[#91171d]"
+                  className="bubbly-btn absolute right-3.5 top-1/2 -translate-y-1/2 text-[#37150f]/50 hover:text-[#91171d] p-1"
                   title="Clear search"
                 >
                   <X className="size-4" />
@@ -123,9 +123,9 @@ export default function FulfillmentDashboard() {
 
               {/* Autocomplete Dropdown */}
               {isItemDropdownOpen && !selectedItemCode && (
-                <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-[#c79754]/30 bg-white p-1.5 shadow-xl">
+                <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-[#c79754]/30 bg-white p-2 shadow-xl">
                   {availableItems.length === 0 ? (
-                    <div className="p-3 text-center text-xs text-stone-500">No items found</div>
+                    <div className="p-3 text-center text-sm font-semibold text-stone-500">No items found</div>
                   ) : (
                     availableItems.slice(0, 25).map((it) => (
                       <button
@@ -137,15 +137,15 @@ export default function FulfillmentDashboard() {
                           setIsItemDropdownOpen(false);
                           setCurrentPage(1);
                         }}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs hover:bg-[#f5d275]/20 cursor-pointer transition-colors"
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left text-sm hover:bg-[#f5d275]/20 cursor-pointer transition-colors"
                       >
-                        <Package className="size-3.5 shrink-0 text-[#91171d]" />
+                        <Package className="size-4 shrink-0 text-[#91171d]" />
                         <div className="flex-1 truncate">
                           <span className="font-extrabold text-[#37150f]">{it.itemCode}</span>
-                          <span className="ml-1.5 text-[#37150f]/70 truncate">{it.itemDesc}</span>
+                          <span className="ml-2 text-[#37150f]/75 font-medium truncate">{it.itemDesc}</span>
                         </div>
                         <span
-                          className={`text-[10px] font-black shrink-0 px-2 py-0.5 rounded-full ${
+                          className={`text-xs font-black shrink-0 px-2.5 py-1 rounded-full ${
                             it.fulfillmentPct >= 100
                               ? 'bg-emerald-100 text-emerald-800'
                               : it.fulfillmentPct >= 80
@@ -163,17 +163,17 @@ export default function FulfillmentDashboard() {
             </div>
 
             {/* Quick Status Filter Pills */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar rounded-full border border-[#ebdcc8] bg-[#fbf7f0] p-1 text-xs font-bold">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar rounded-full border border-[#ebdcc8] bg-[#fbf7f0] p-1.5 text-xs sm:text-sm font-bold">
               <button
                 type="button"
                 onClick={() => {
                   setStatusFilter('all');
                   setCurrentPage(1);
                 }}
-                className={`bubbly-btn rounded-full px-3 py-1.5 transition cursor-pointer whitespace-nowrap ${
+                className={`bubbly-btn rounded-full px-3.5 py-1.5 transition cursor-pointer whitespace-nowrap ${
                   statusFilter === 'all'
-                    ? 'bg-[#37150f] text-[#f5d275] shadow-sm font-extrabold'
-                    : 'text-[#37150f]/70 hover:bg-white/60'
+                    ? 'bg-[#37150f] text-[#f5d275] shadow-sm font-black'
+                    : 'text-[#37150f]/75 hover:bg-white/60'
                 }`}
               >
                 All ({fulfillment.items.length})
@@ -184,9 +184,9 @@ export default function FulfillmentDashboard() {
                   setStatusFilter('fulfilled');
                   setCurrentPage(1);
                 }}
-                className={`bubbly-btn rounded-full px-3 py-1.5 transition cursor-pointer whitespace-nowrap ${
+                className={`bubbly-btn rounded-full px-3.5 py-1.5 transition cursor-pointer whitespace-nowrap ${
                   statusFilter === 'fulfilled'
-                    ? 'bg-emerald-700 text-white shadow-sm font-extrabold'
+                    ? 'bg-emerald-700 text-white shadow-sm font-black'
                     : 'text-emerald-800 hover:bg-emerald-50'
                 }`}
               >
@@ -198,9 +198,9 @@ export default function FulfillmentDashboard() {
                   setStatusFilter('partial');
                   setCurrentPage(1);
                 }}
-                className={`bubbly-btn rounded-full px-3 py-1.5 transition cursor-pointer whitespace-nowrap ${
+                className={`bubbly-btn rounded-full px-3.5 py-1.5 transition cursor-pointer whitespace-nowrap ${
                   statusFilter === 'partial'
-                    ? 'bg-amber-600 text-white shadow-sm font-extrabold'
+                    ? 'bg-amber-600 text-white shadow-sm font-black'
                     : 'text-amber-800 hover:bg-amber-50'
                 }`}
               >
@@ -212,9 +212,9 @@ export default function FulfillmentDashboard() {
                   setStatusFilter('low');
                   setCurrentPage(1);
                 }}
-                className={`bubbly-btn rounded-full px-3 py-1.5 transition cursor-pointer whitespace-nowrap ${
+                className={`bubbly-btn rounded-full px-3.5 py-1.5 transition cursor-pointer whitespace-nowrap ${
                   statusFilter === 'low'
-                    ? 'bg-rose-700 text-white shadow-sm font-extrabold'
+                    ? 'bg-rose-700 text-white shadow-sm font-black'
                     : 'text-rose-800 hover:bg-rose-50'
                 }`}
               >
@@ -225,62 +225,62 @@ export default function FulfillmentDashboard() {
         </div>
       </div>
 
-      {/* Top Overall KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {/* Prominent Bubbly KPI Grid */}
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-5 lg:grid-cols-4">
         {/* KPI 1 */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Orders (SO)</span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-[#91171d]/10 text-[#91171d]">
-              <Package className="size-4" />
+          <div className="flex items-center justify-between text-[#37150f]/70">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">Orders (SO)</span>
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-[#91171d]/10 text-[#91171d]">
+              <Package className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-[#91171d] tracking-tight">
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#91171d] tracking-tight">
             {fmtInt(fulfillment.totalSoQty)}{' '}
-            <span className="text-xs font-bold text-[#c79754]">units</span>
+            <span className="text-xs sm:text-sm font-bold text-[#c79754]">units</span>
           </div>
         </div>
 
         {/* KPI 2 */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Invoices (SI)</span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-[#be3937]/10 text-[#be3937]">
-              <Scale className="size-4" />
+          <div className="flex items-center justify-between text-[#37150f]/70">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">Invoices (SI)</span>
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-[#be3937]/10 text-[#be3937]">
+              <Scale className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-[#be3937] tracking-tight">
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#be3937] tracking-tight">
             {fmtInt(fulfillment.totalSiQty)}{' '}
-            <span className="text-xs font-bold text-[#c79754]">units</span>
+            <span className="text-xs sm:text-sm font-bold text-[#c79754]">units</span>
           </div>
         </div>
 
         {/* KPI 3: Overall Fulfillment Rate */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between text-emerald-800">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">
               Fulfillment Rate
             </span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-emerald-500 text-white">
-              <CheckCircle2 className="size-4" />
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-emerald-500 text-white">
+              <CheckCircle2 className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-emerald-900 tracking-tight">
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-900 tracking-tight">
             {fulfillment.overallFulfillmentPct}%
           </div>
         </div>
 
         {/* KPI 4 */}
         <div className="bubbly-card rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between text-[#37150f]/60">
-            <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Completed SKUs</span>
-            <div className="grid size-8 sm:size-9 place-items-center rounded-2xl bg-[#c79754]/20 text-[#37150f]">
-              <TrendingUp className="size-4" />
+          <div className="flex items-center justify-between text-[#37150f]/70">
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider">Completed SKUs</span>
+            <div className="grid size-9 sm:size-10 place-items-center rounded-2xl bg-[#c79754]/20 text-[#37150f]">
+              <TrendingUp className="size-5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-black text-[#37150f] tracking-tight">
+          <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
             {fulfillment.stats.fullyFulfilled}{' '}
-            <span className="text-xs font-bold text-[#c79754]">/ {fulfillment.stats.totalItems}</span>
+            <span className="text-xs sm:text-sm font-bold text-[#c79754]">/ {fulfillment.stats.totalItems}</span>
           </div>
         </div>
       </div>
@@ -288,30 +288,30 @@ export default function FulfillmentDashboard() {
       {/* Main Comparison Chart: Single Item or Overall Monthly Trend */}
       {selectedItem ? (
         /* Selected Item Deep Dive Comparison */
-        <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-3">
+        <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-4">
             <div>
-              <span className="inline-block rounded-full bg-[#37150f] px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#f5d275]">
+              <span className="inline-block rounded-full bg-[#37150f] px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#f5d275]">
                 Item Fulfillment
               </span>
-              <h3 className="mt-1 text-base sm:text-lg font-black text-[#37150f]">
+              <h3 className="mt-1.5 text-lg sm:text-xl font-black text-[#37150f]">
                 {selectedItem.itemCode}
               </h3>
-              <p className="text-xs font-medium text-[#37150f]/70 truncate max-w-md">{selectedItem.itemDesc}</p>
+              <p className="text-sm font-medium text-[#37150f]/75 truncate max-w-lg">{selectedItem.itemDesc}</p>
             </div>
-            <div className="flex items-center gap-4 sm:gap-6 text-right">
+            <div className="flex items-center gap-4 sm:gap-7 text-right">
               <div>
-                <div className="text-[10px] font-bold text-[#91171d] uppercase">SO Demand</div>
-                <div className="text-base sm:text-lg font-black text-[#91171d]">{fmtInt(selectedItem.soTotal)}</div>
+                <div className="text-xs font-bold text-[#91171d] uppercase tracking-wider">SO Demand</div>
+                <div className="text-lg sm:text-2xl font-black text-[#91171d]">{fmtInt(selectedItem.soTotal)}</div>
               </div>
               <div>
-                <div className="text-[10px] font-bold text-[#be3937] uppercase">SI Invoiced</div>
-                <div className="text-base sm:text-lg font-black text-[#be3937]">{fmtInt(selectedItem.siTotal)}</div>
+                <div className="text-xs font-bold text-[#be3937] uppercase tracking-wider">SI Invoiced</div>
+                <div className="text-lg sm:text-2xl font-black text-[#be3937]">{fmtInt(selectedItem.siTotal)}</div>
               </div>
               <div>
-                <div className="text-[10px] font-bold text-emerald-700 uppercase">Rate</div>
+                <div className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Rate</div>
                 <div
-                  className={`text-lg sm:text-xl font-black ${
+                  className={`text-xl sm:text-3xl font-black ${
                     selectedItem.fulfillmentPct >= 100
                       ? 'text-emerald-700'
                       : selectedItem.fulfillmentPct >= 80
@@ -326,7 +326,7 @@ export default function FulfillmentDashboard() {
           </div>
 
           {/* Chart for this item */}
-          <div className="mt-4 h-60 sm:h-72 w-full">
+          <div className="mt-4 h-64 sm:h-76 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={selectedItem.monthly}
@@ -335,19 +335,19 @@ export default function FulfillmentDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f4ecdf" />
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: '#37150f', fontSize: 11, fontWeight: 700 }}
+                  tick={{ fill: '#37150f', fontSize: 12, fontWeight: 700 }}
                   stroke="#c79754"
                 />
                 <YAxis
                   yAxisId="qty"
-                  tick={{ fill: '#37150f', fontSize: 11 }}
+                  tick={{ fill: '#37150f', fontSize: 12, fontWeight: 600 }}
                   stroke="#c79754"
                   tickFormatter={(v) => fmtCompact(v)}
                 />
                 <YAxis
                   yAxisId="pct"
                   orientation="right"
-                  tick={{ fill: '#959242', fontSize: 11 }}
+                  tick={{ fill: '#959242', fontSize: 12, fontWeight: 700 }}
                   stroke="#959242"
                   tickFormatter={(v) => `${v}%`}
                   domain={[0, 150]}
@@ -357,13 +357,13 @@ export default function FulfillmentDashboard() {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3 text-white shadow-xl">
+                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
                         <div className="text-xs font-bold text-[#f5d275]">
                           {d.month} 2026
                         </div>
-                        <div className="mt-1 text-xs">SO Demand: {fmtInt(d.soQty)} pcs</div>
-                        <div className="text-xs">SI Invoiced: {fmtInt(d.siQty)} pcs</div>
-                        <div className="mt-1 font-black text-emerald-400">
+                        <div className="mt-1 text-sm font-semibold">SO Demand: {fmtInt(d.soQty)} pcs</div>
+                        <div className="text-sm font-semibold">SI Invoiced: {fmtInt(d.siQty)} pcs</div>
+                        <div className="mt-1.5 text-base font-black text-emerald-400">
                           Fulfillment: {d.fulfillmentPct}%
                         </div>
                       </div>
@@ -376,7 +376,7 @@ export default function FulfillmentDashboard() {
                   name="SO Demand"
                   fill="#91171d"
                   radius={[6, 6, 0, 0]}
-                  maxBarSize={32}
+                  maxBarSize={36}
                 />
                 <Bar
                   yAxisId="qty"
@@ -384,7 +384,7 @@ export default function FulfillmentDashboard() {
                   name="SI Invoiced"
                   fill="#be3937"
                   radius={[6, 6, 0, 0]}
-                  maxBarSize={32}
+                  maxBarSize={36}
                 />
                 <Line
                   yAxisId="pct"
@@ -393,7 +393,7 @@ export default function FulfillmentDashboard() {
                   name="Fulfillment %"
                   stroke="#959242"
                   strokeWidth={3}
-                  dot={{ fill: '#37150f', r: 4, strokeWidth: 2, stroke: '#f5d275' }}
+                  dot={{ fill: '#37150f', r: 5, strokeWidth: 2, stroke: '#f5d275' }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -401,29 +401,29 @@ export default function FulfillmentDashboard() {
         </div>
       ) : (
         /* Overall Monthly Trend Comparison */
-        <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-[#ebdcc8] pb-3">
+        <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#ebdcc8] pb-4">
             <div>
-              <span className="inline-block rounded-full bg-[#37150f] px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#f5d275]">
+              <span className="inline-block rounded-full bg-[#37150f] px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#f5d275]">
                 SO vs SI Monthly
               </span>
-              <h3 className="mt-1 text-base sm:text-lg font-black text-[#37150f]">
+              <h3 className="mt-1.5 text-lg sm:text-xl font-black text-[#37150f]">
                 Demand vs Fulfilled (Jan – Oct 2026)
               </h3>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4 text-xs font-bold">
+            <div className="flex items-center gap-4 text-xs sm:text-sm font-bold">
               <div className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-full bg-[#91171d]"></span>
+                <span className="size-3 rounded-full bg-[#91171d]"></span>
                 <span className="text-[#37150f]">SO Demand</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-full bg-[#be3937]"></span>
+                <span className="size-3 rounded-full bg-[#be3937]"></span>
                 <span className="text-[#37150f]">SI Fulfilled</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 h-60 sm:h-72 w-full">
+          <div className="mt-4 h-64 sm:h-76 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={fulfillment.monthly}
@@ -432,19 +432,19 @@ export default function FulfillmentDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f4ecdf" />
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: '#37150f', fontSize: 11, fontWeight: 700 }}
+                  tick={{ fill: '#37150f', fontSize: 12, fontWeight: 700 }}
                   stroke="#c79754"
                 />
                 <YAxis
                   yAxisId="qty"
-                  tick={{ fill: '#37150f', fontSize: 11 }}
+                  tick={{ fill: '#37150f', fontSize: 12, fontWeight: 600 }}
                   stroke="#c79754"
                   tickFormatter={(v) => fmtCompact(v)}
                 />
                 <YAxis
                   yAxisId="pct"
                   orientation="right"
-                  tick={{ fill: '#959242', fontSize: 11 }}
+                  tick={{ fill: '#959242', fontSize: 12, fontWeight: 700 }}
                   stroke="#959242"
                   tickFormatter={(v) => `${v}%`}
                   domain={[0, 150]}
@@ -454,13 +454,13 @@ export default function FulfillmentDashboard() {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3 text-white shadow-xl">
+                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
                         <div className="text-xs font-bold text-[#f5d275]">
                           {d.month} 2026
                         </div>
-                        <div className="mt-1 text-xs">SO Demand: {fmtInt(d.soQty)} pcs</div>
-                        <div className="text-xs">SI Fulfilled: {fmtInt(d.siQty)} pcs</div>
-                        <div className="mt-1 font-black text-emerald-400">
+                        <div className="mt-1 text-sm font-semibold">SO Demand: {fmtInt(d.soQty)} pcs</div>
+                        <div className="text-sm font-semibold">SI Fulfilled: {fmtInt(d.siQty)} pcs</div>
+                        <div className="mt-1.5 text-base font-black text-emerald-400">
                           Fulfillment: {d.fulfillmentPct}%
                         </div>
                       </div>
@@ -473,7 +473,7 @@ export default function FulfillmentDashboard() {
                   name="SO Demand"
                   fill="#91171d"
                   radius={[6, 6, 0, 0]}
-                  maxBarSize={32}
+                  maxBarSize={36}
                 />
                 <Bar
                   yAxisId="qty"
@@ -481,7 +481,7 @@ export default function FulfillmentDashboard() {
                   name="SI Fulfilled"
                   fill="#be3937"
                   radius={[6, 6, 0, 0]}
-                  maxBarSize={32}
+                  maxBarSize={36}
                 />
                 <Line
                   yAxisId="pct"
@@ -490,7 +490,7 @@ export default function FulfillmentDashboard() {
                   name="Fulfillment %"
                   stroke="#959242"
                   strokeWidth={3}
-                  dot={{ fill: '#37150f', r: 4, strokeWidth: 2, stroke: '#f5d275' }}
+                  dot={{ fill: '#37150f', r: 5, strokeWidth: 2, stroke: '#f5d275' }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -499,49 +499,49 @@ export default function FulfillmentDashboard() {
       )}
 
       {/* Item-by-Item Fulfillment Table */}
-      <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-4 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-3">
-          <h3 className="text-base font-black text-[#37150f]">
+      <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-4">
+          <h3 className="text-lg font-black text-[#37150f]">
             Product Fulfillment Comparison
           </h3>
 
-          <div className="flex items-center gap-2 text-xs font-bold self-end sm:self-auto">
+          <div className="flex items-center gap-2 text-sm font-bold self-end sm:self-auto">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="bubbly-btn grid size-8 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
+              className="bubbly-btn grid size-8.5 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
               title="Previous"
             >
-              <ChevronLeft className="size-4" />
+              <ChevronLeft className="size-4.5" />
             </button>
-            <span className="text-[#37150f] px-2 font-bold">
+            <span className="text-[#37150f] px-2 font-extrabold">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className="bubbly-btn grid size-8 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
+              className="bubbly-btn grid size-8.5 place-items-center rounded-full border border-[#ebdcc8] bg-[#fbf7f0] hover:bg-[#f5d275]/40 disabled:opacity-40 cursor-pointer"
               title="Next"
             >
-              <ChevronRight className="size-4" />
+              <ChevronRight className="size-4.5" />
             </button>
           </div>
         </div>
 
-        <div className="mt-3 overflow-x-auto table-scroll rounded-xl border border-[#ebdcc8] bg-white">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="mt-3.5 overflow-x-auto table-scroll rounded-xl border border-[#ebdcc8] bg-white">
+          <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-[#ebdcc8] bg-[#fbf7f0] font-black text-[#37150f]">
-                <th className="py-2.5 px-3 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#ebdcc8] min-w-[110px]">
+                <th className="py-3 px-3.5 sticky left-0 bg-[#fbf7f0] z-10 border-r border-[#ebdcc8] min-w-[120px] whitespace-nowrap">
                   Item Code
                 </th>
-                <th className="py-2.5 px-3 min-w-[160px]">Description</th>
-                <th className="py-2.5 px-3 text-right">SO Demand</th>
-                <th className="py-2.5 px-3 text-right">SI Fulfilled</th>
-                <th className="py-2.5 px-3 text-right">Rate</th>
-                <th className="py-2.5 px-3 text-right">Variance</th>
-                <th className="py-2.5 px-3 text-center">Status</th>
-                <th className="py-2.5 px-2 text-center">Details</th>
+                <th className="py-3 px-3.5 min-w-[180px]">Description</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap">SO Demand</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap">SI Fulfilled</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap">Rate</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap">Variance</th>
+                <th className="py-3 px-3.5 text-center whitespace-nowrap">Status</th>
+                <th className="py-3 px-2.5 text-center whitespace-nowrap">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#ebdcc8]/70 font-medium">
@@ -553,21 +553,21 @@ export default function FulfillmentDashboard() {
                       selectedItemCode === it.itemCode ? 'bg-[#f5d275]/25 font-bold' : ''
                     }`}
                   >
-                    <td className="py-2.5 px-3 font-extrabold text-[#37150f] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#ebdcc8]">
+                    <td className="py-2.5 px-3.5 font-extrabold text-[#37150f] sticky left-0 bg-white group-hover:bg-[#fbf7f0] z-10 border-r border-[#ebdcc8] whitespace-nowrap">
                       {it.itemCode}
                     </td>
-                    <td className="py-2.5 px-3 max-w-[220px] truncate text-[#37150f]/80">
+                    <td className="py-2.5 px-3.5 max-w-[240px] truncate text-[#37150f] font-semibold">
                       {it.itemDesc}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-extrabold text-[#91171d] tabular-nums">
+                    <td className="py-2.5 px-3.5 text-right font-extrabold text-[#91171d] tabular-nums">
                       {fmtInt(it.soTotal)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-extrabold text-[#be3937] tabular-nums">
+                    <td className="py-2.5 px-3.5 text-right font-extrabold text-[#be3937] tabular-nums">
                       {fmtInt(it.siTotal)}
                     </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="h-1.5 w-12 overflow-hidden rounded-full bg-stone-200">
+                    <td className="py-2.5 px-3.5 text-right tabular-nums">
+                      <div className="flex items-center justify-end gap-2.5">
+                        <div className="h-2 w-14 overflow-hidden rounded-full bg-stone-200">
                           <div
                             className={`h-full rounded-full ${
                               it.fulfillmentPct >= 100
@@ -593,15 +593,15 @@ export default function FulfillmentDashboard() {
                       </div>
                     </td>
                     <td
-                      className={`py-2.5 px-3 text-right font-bold tabular-nums ${
+                      className={`py-2.5 px-3.5 text-right font-bold tabular-nums ${
                         it.variance >= 0 ? 'text-emerald-700' : 'text-rose-700'
                       }`}
                     >
                       {it.variance >= 0 ? `+${fmtInt(it.variance)}` : fmtInt(it.variance)}
                     </td>
-                    <td className="py-2.5 px-3 text-center">
+                    <td className="py-2.5 px-3.5 text-center">
                       <span
-                        className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                        className={`inline-block rounded-full px-3 py-0.5 text-xs font-black uppercase tracking-wider ${
                           it.status === 'over'
                             ? 'bg-blue-100 text-blue-800'
                             : it.status === 'fulfilled'
@@ -620,11 +620,11 @@ export default function FulfillmentDashboard() {
                           : 'Low'}
                       </span>
                     </td>
-                    <td className="py-2.5 px-2 text-center">
+                    <td className="py-2.5 px-2.5 text-center">
                       <button
                         type="button"
                         onClick={() => setSelectedItemCode(it.itemCode)}
-                        className="bubbly-btn rounded-full bg-[#37150f] hover:bg-[#91171d] px-3 py-1 text-[11px] font-bold text-[#f5d275] transition cursor-pointer"
+                        className="bubbly-btn rounded-full bg-[#37150f] hover:bg-[#91171d] px-3.5 py-1 text-xs font-bold text-[#f5d275] transition cursor-pointer"
                       >
                         View
                       </button>
