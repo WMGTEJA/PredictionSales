@@ -63,6 +63,8 @@ export default function SalesInvoicePrediction() {
     forecast.totals.novTargetTotal + forecast.totals.decTargetTotal + forecast.totals.janTargetTotal;
   const ai3MoTotal =
     forecast.totals.novAiTotal + forecast.totals.decAiTotal + forecast.totals.janAiTotal;
+  const plan3MoTotal =
+    forecast.totals.novPlanTotal + forecast.totals.decPlanTotal + forecast.totals.janPlanTotal;
 
   return (
     <div className="w-full space-y-5 sm:space-y-6 pb-12">
@@ -93,8 +95,18 @@ export default function SalesInvoicePrediction() {
         </div>
 
         {/* Prominent Bubbly KPI Grid */}
-        <div className="mt-5 grid grid-cols-2 gap-3.5 sm:gap-5 lg:grid-cols-4">
-          {/* Card 1: AI 3-Month Total */}
+        <div className="mt-5 grid grid-cols-2 gap-3.5 sm:gap-5 lg:grid-cols-5">
+          {/* Card 1: Oct Actual */}
+          <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4 sm:p-5">
+            <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#37150f]/70">
+              Oct 2026 Actual
+            </div>
+            <div className="mt-1.5 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
+              {fmtInt(octActual)} <span className="text-xs sm:text-sm font-bold text-[#c79754]">units</span>
+            </div>
+          </div>
+
+          {/* Card 2: AI 3-Month Total */}
           <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4 sm:p-5">
             <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#37150f]/70">
               AI Forecast (3-Mo)
@@ -105,7 +117,7 @@ export default function SalesInvoicePrediction() {
             </div>
           </div>
 
-          {/* Card 2: Target 3-Month Total */}
+          {/* Card 3: Target 3-Month Total */}
           <div className="bubbly-card rounded-2xl border border-[#91171d]/20 bg-rose-50/50 p-4 sm:p-5">
             <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#91171d]">
               Target (+10% MoM)
@@ -116,17 +128,18 @@ export default function SalesInvoicePrediction() {
             </div>
           </div>
 
-          {/* Card 3: Oct Actual */}
-          <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4 sm:p-5">
-            <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#37150f]/70">
-              Oct 2026 Actual
+          {/* Card 4: Recommended Plan 3-Month Total */}
+          <div className="bubbly-card rounded-2xl border border-amber-300 bg-amber-50/80 p-4 sm:p-5">
+            <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#854d0e]">
+              Recommended Plan
             </div>
-            <div className="mt-1.5 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
-              {fmtInt(octActual)} <span className="text-xs sm:text-sm font-bold text-[#c79754]">units</span>
+            <div className="mt-1.5 text-2xl sm:text-3xl lg:text-4xl font-black text-[#854d0e] tracking-tight">
+              {fmtInt(plan3MoTotal)}{' '}
+              <span className="text-xs sm:text-sm font-bold text-[#854d0e]/70">units</span>
             </div>
           </div>
 
-          {/* Card 4: Forecast Shift & Products */}
+          {/* Card 5: Total Products */}
           <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4 sm:p-5">
             <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#37150f]/70">
               Total Products
@@ -221,12 +234,17 @@ export default function SalesInvoicePrediction() {
 
                   {/* Group 1: AI Model Prediction */}
                   <th colSpan={3} className="py-2 px-3 bg-[#37150f]/10 border-r border-[#ebdcc8] text-xs sm:text-sm font-black text-[#37150f]">
-                    AI Model (3 Months)
+                    AI Prediction
                   </th>
 
                   {/* Group 2: Target (+10% MoM) */}
                   <th colSpan={3} className="py-2 px-3 bg-[#91171d]/10 border-r border-[#ebdcc8] text-xs sm:text-sm font-black text-[#91171d]">
-                    Target (+10% MoM)
+                    Add 10% from the previous month
+                  </th>
+
+                  {/* Group 3: Recommended Plan (Strategy A Decision Blend) */}
+                  <th colSpan={3} className="py-2 px-3 bg-amber-500/15 border-r border-[#ebdcc8] text-xs sm:text-sm font-black text-[#854d0e]">
+                    Recommended Plan (Decision)
                   </th>
 
                   <th rowSpan={2} className="py-3 px-3.5 text-right min-w-[85px]">
@@ -243,6 +261,11 @@ export default function SalesInvoicePrediction() {
                   <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Nov (+10%)</th>
                   <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Dec (+10%)</th>
                   <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] border-r border-[#ebdcc8] min-w-[90px]">Jan (+10%)</th>
+
+                  {/* Recommended Plan sub-headers */}
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Nov Plan</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Dec Plan</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] border-r border-[#ebdcc8] min-w-[90px]">Jan Plan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ebdcc8]/70 font-medium">
@@ -292,6 +315,17 @@ export default function SalesInvoicePrediction() {
                         {fmtInt(it.janTarget)}
                       </td>
 
+                      {/* Recommended Plan (Strategy A Smart Blend) */}
+                      <td className="py-2.5 px-3 text-right tabular-nums font-black text-[#854d0e] bg-amber-500/10">
+                        {fmtInt(it.novPlan)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right tabular-nums font-bold text-[#854d0e] bg-amber-500/10">
+                        {fmtInt(it.decPlan)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right tabular-nums font-bold text-[#854d0e] bg-amber-500/10 border-r border-[#ebdcc8]">
+                        {fmtInt(it.janPlan)}
+                      </td>
+
                       <td className="py-2.5 px-3.5 text-right tabular-nums text-[#37150f]/75 font-bold whitespace-nowrap">
                         {it.packSize ? `${it.packSize} pcs` : '-'}
                       </td>
@@ -328,6 +362,16 @@ export default function SalesInvoicePrediction() {
                   </td>
                   <td className="py-3 px-3 text-right tabular-nums font-black text-[#91171d] bg-[#91171d]/10 border-r border-[#ebdcc8]">
                     {fmtInt(forecast.totals.janTargetTotal)}
+                  </td>
+                  {/* Recommended Plan Totals */}
+                  <td className="py-3 px-3 text-right tabular-nums font-black text-[#854d0e] bg-amber-500/15">
+                    {fmtInt(forecast.totals.novPlanTotal)}
+                  </td>
+                  <td className="py-3 px-3 text-right tabular-nums font-black text-[#854d0e] bg-amber-500/15">
+                    {fmtInt(forecast.totals.decPlanTotal)}
+                  </td>
+                  <td className="py-3 px-3 text-right tabular-nums font-black text-[#854d0e] bg-amber-500/15 border-r border-[#ebdcc8]">
+                    {fmtInt(forecast.totals.janPlanTotal)}
                   </td>
                   <td className="py-3 px-3.5 text-right text-xs text-[#37150f]/60 font-semibold">
                     Units in pcs

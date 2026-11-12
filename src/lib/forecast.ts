@@ -55,6 +55,11 @@ export interface ItemForecast {
   decTarget: number;
   janTarget: number;
 
+  /** 3-Month Smart Decision Blend (Strategy A: Trend-weighted AI + Target) */
+  novPlan: number;
+  decPlan: number;
+  janPlan: number;
+
   forecastQty: number;
   /** Raw algorithmic prediction before any manual overrides. */
   originalForecastQty: number;
@@ -87,6 +92,9 @@ export interface ForecastResult {
     novTargetTotal: number;
     decTargetTotal: number;
     janTargetTotal: number;
+    novPlanTotal: number;
+    decPlanTotal: number;
+    janPlanTotal: number;
     forecastQty: number;
     forecastAmount: number;
     low: number;
@@ -430,6 +438,23 @@ export function buildForecast(
     else if (relativeSlope < -0.05) trend = 'down';
     else trend = 'flat';
 
+    // 5. Strategy A Decision Blend (Trend-guided blend of AI and Target):
+    // - Up: 70% Target + 30% AI (growth momentum justifies chasing target)
+    // - Flat / New: 50% Target + 50% AI (balanced operational forecast)
+    // - Down / Stopped: 100% AI (protects from overstocking falling or dead stock)
+    let targetWeight = 0.5;
+    if (trend === 'up') {
+      targetWeight = 0.7;
+    } else if (trend === 'down' || trend === 'stopped') {
+      targetWeight = 0;
+    } else {
+      targetWeight = 0.5;
+    }
+
+    const novPlan = Math.max(0, Math.round(targetWeight * novTarget + (1 - targetWeight) * novAi));
+    const decPlan = Math.max(0, Math.round(targetWeight * decTarget + (1 - targetWeight) * decAi));
+    const janPlan = Math.max(0, Math.round(targetWeight * janTarget + (1 - targetWeight) * janAi));
+
     items.push({
       key,
       code: e.code,
@@ -444,6 +469,9 @@ export function buildForecast(
       novTarget,
       decTarget,
       janTarget,
+      novPlan,
+      decPlan,
+      janPlan,
       forecastQty,
       originalForecastQty: rawForecastQty,
       isManual,
@@ -470,6 +498,9 @@ export function buildForecast(
     novTargetTotal: sum(items.map((it) => it.novTarget)),
     decTargetTotal: sum(items.map((it) => it.decTarget)),
     janTargetTotal: sum(items.map((it) => it.janTarget)),
+    novPlanTotal: sum(items.map((it) => it.novPlan)),
+    decPlanTotal: sum(items.map((it) => it.decPlan)),
+    janPlanTotal: sum(items.map((it) => it.janPlan)),
     forecastQty: sum(items.map((it) => it.forecastQty)),
     forecastAmount: Math.round(sum(items.map((it) => it.forecastAmount)) * 100) / 100,
     low: sum(items.map((it) => it.low)),

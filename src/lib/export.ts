@@ -24,6 +24,10 @@ export function exportForecastToExcel(result: ForecastResult) {
     row['Nov 2026 Target (+10%) (pcs)'] = it.novTarget;
     row['Dec 2026 Target (+10%) (pcs)'] = it.decTarget;
     row['Jan 2027 Target (+10%) (pcs)'] = it.janTarget;
+    // 3-Month Recommended Plan (Strategy A Decision Blend)
+    row['Nov 2026 Recommended Plan (pcs)'] = it.novPlan;
+    row['Dec 2026 Recommended Plan (pcs)'] = it.decPlan;
+    row['Jan 2027 Recommended Plan (pcs)'] = it.janPlan;
     row[`Forecast ${next} (pcs)`] = it.forecastQty;
     row['Status'] = it.isManual ? 'Manual Adjustment' : 'AI Prediction';
     if (it.isManual) {

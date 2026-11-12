@@ -14,7 +14,10 @@ import { useSalesData } from '../hooks/useSalesData';
 export default function Layout({ children }: { children: ReactNode }) {
   const { syncing, syncNow, lastSyncedAt, error } = useSalesData();
   const location = useLocation();
-  const [logoSrc, setLogoSrc] = useState<string>('/logo.jpeg');
+  const baseUrl = import.meta.env.BASE_URL.endsWith('/')
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+  const [logoSrc, setLogoSrc] = useState<string>(`${baseUrl}logo.jpeg`);
 
   const formattedSyncTime = lastSyncedAt
     ? new Date(lastSyncedAt).toLocaleTimeString('en-MY', {
@@ -41,8 +44,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                   src={logoSrc}
                   alt="Sales Prediction Logo"
                   onError={() => {
-                    if (logoSrc !== '/logo.svg') {
-                      setLogoSrc('/logo.svg');
+                    const fallbackSvg = `${baseUrl}logo.svg`;
+                    if (logoSrc !== fallbackSvg) {
+                      setLogoSrc(fallbackSvg);
                     }
                   }}
                   className="h-9 sm:h-10 w-auto max-w-[150px] sm:max-w-[200px] object-contain rounded-xl transition-transform group-hover:scale-105"
