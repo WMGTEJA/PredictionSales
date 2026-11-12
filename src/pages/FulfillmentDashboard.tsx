@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
   Bar,
+  BarChart,
   CartesianGrid,
-  ComposedChart,
-  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -325,10 +324,27 @@ export default function FulfillmentDashboard() {
             </div>
           </div>
 
+          {/* Legend */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ebdcc8]/60 pb-3 mt-3">
+            <div className="text-xs font-bold text-[#37150f]/70">
+              Monthly Demand vs Invoiced
+            </div>
+            <div className="flex items-center gap-4 text-xs sm:text-sm font-bold">
+              <div className="flex items-center gap-1.5">
+                <span className="size-3 rounded-full bg-[#91171d]"></span>
+                <span className="text-[#37150f]">SO Demand</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-3 rounded-full bg-[#be3937]"></span>
+                <span className="text-[#37150f]">SI Invoiced</span>
+              </div>
+            </div>
+          </div>
+
           {/* Chart for this item */}
           <div className="mt-4 h-64 sm:h-76 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
+              <BarChart
                 data={selectedItem.monthly}
                 margin={{ top: 15, right: 15, left: -10, bottom: 0 }}
               >
@@ -339,39 +355,58 @@ export default function FulfillmentDashboard() {
                   stroke="#c79754"
                 />
                 <YAxis
-                  yAxisId="qty"
                   tick={{ fill: '#37150f', fontSize: 12, fontWeight: 600 }}
                   stroke="#c79754"
                   tickFormatter={(v) => fmtCompact(v)}
-                />
-                <YAxis
-                  yAxisId="pct"
-                  orientation="right"
-                  tick={{ fill: '#959242', fontSize: 12, fontWeight: 700 }}
-                  stroke="#959242"
-                  tickFormatter={(v) => `${v}%`}
-                  domain={[0, 150]}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
-                        <div className="text-xs font-bold text-[#f5d275]">
+                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl min-w-[200px]">
+                        <div className="text-xs font-bold text-[#f5d275] border-b border-white/10 pb-1 mb-2">
                           {d.month} 2026
                         </div>
-                        <div className="mt-1 text-sm font-semibold">SO Demand: {fmtInt(d.soQty)} pcs</div>
-                        <div className="text-sm font-semibold">SI Invoiced: {fmtInt(d.siQty)} pcs</div>
-                        <div className="mt-1.5 text-base font-black text-emerald-400">
-                          Fulfillment: {d.fulfillmentPct}%
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full bg-[#91171d]"></span>
+                            <span>SO Demand:</span>
+                          </span>
+                          <span className="tabular-nums font-bold">{fmtInt(d.soQty)} pcs</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3 mt-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full bg-[#be3937]"></span>
+                            <span>SI Invoiced:</span>
+                          </span>
+                          <span className="tabular-nums font-bold">{fmtInt(d.siQty)} pcs</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3 mt-1">
+                          <span className="text-stone-300">Variance:</span>
+                          <span className={`tabular-nums font-bold ${d.variance >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                            {d.variance >= 0 ? `+${fmtInt(d.variance)}` : `${fmtInt(d.variance)}`} pcs
+                          </span>
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#f5d275]">Fulfillment:</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-black ${
+                              d.fulfillmentPct >= 100
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : d.fulfillmentPct >= 80
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                            }`}
+                          >
+                            {d.fulfillmentPct}%
+                          </span>
                         </div>
                       </div>
                     );
                   }}
                 />
                 <Bar
-                  yAxisId="qty"
                   dataKey="soQty"
                   name="SO Demand"
                   fill="#91171d"
@@ -379,30 +414,20 @@ export default function FulfillmentDashboard() {
                   maxBarSize={36}
                 />
                 <Bar
-                  yAxisId="qty"
                   dataKey="siQty"
                   name="SI Invoiced"
                   fill="#be3937"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={36}
                 />
-                <Line
-                  yAxisId="pct"
-                  type="linear"
-                  dataKey="fulfillmentPct"
-                  name="Fulfillment %"
-                  stroke="#959242"
-                  strokeWidth={3}
-                  dot={{ fill: '#37150f', r: 5, strokeWidth: 2, stroke: '#f5d275' }}
-                />
-              </ComposedChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
       ) : (
         /* Overall Monthly Trend Comparison */
         <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-[#ebdcc8] pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-4">
             <div>
               <span className="inline-block rounded-full bg-[#37150f] px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#f5d275]">
                 SO vs SI Monthly
@@ -425,7 +450,7 @@ export default function FulfillmentDashboard() {
 
           <div className="mt-4 h-64 sm:h-76 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
+              <BarChart
                 data={fulfillment.monthly}
                 margin={{ top: 15, right: 15, left: -10, bottom: 0 }}
               >
@@ -436,39 +461,58 @@ export default function FulfillmentDashboard() {
                   stroke="#c79754"
                 />
                 <YAxis
-                  yAxisId="qty"
                   tick={{ fill: '#37150f', fontSize: 12, fontWeight: 600 }}
                   stroke="#c79754"
                   tickFormatter={(v) => fmtCompact(v)}
-                />
-                <YAxis
-                  yAxisId="pct"
-                  orientation="right"
-                  tick={{ fill: '#959242', fontSize: 12, fontWeight: 700 }}
-                  stroke="#959242"
-                  tickFormatter={(v) => `${v}%`}
-                  domain={[0, 150]}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
-                        <div className="text-xs font-bold text-[#f5d275]">
+                      <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl min-w-[200px]">
+                        <div className="text-xs font-bold text-[#f5d275] border-b border-white/10 pb-1 mb-2">
                           {d.month} 2026
                         </div>
-                        <div className="mt-1 text-sm font-semibold">SO Demand: {fmtInt(d.soQty)} pcs</div>
-                        <div className="text-sm font-semibold">SI Fulfilled: {fmtInt(d.siQty)} pcs</div>
-                        <div className="mt-1.5 text-base font-black text-emerald-400">
-                          Fulfillment: {d.fulfillmentPct}%
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full bg-[#91171d]"></span>
+                            <span>SO Demand:</span>
+                          </span>
+                          <span className="tabular-nums font-bold">{fmtInt(d.soQty)} pcs</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3 mt-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full bg-[#be3937]"></span>
+                            <span>SI Fulfilled:</span>
+                          </span>
+                          <span className="tabular-nums font-bold">{fmtInt(d.siQty)} pcs</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3 mt-1">
+                          <span className="text-stone-300">Variance:</span>
+                          <span className={`tabular-nums font-bold ${d.variance >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                            {d.variance >= 0 ? `+${fmtInt(d.variance)}` : `${fmtInt(d.variance)}`} pcs
+                          </span>
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#f5d275]">Fulfillment:</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-black ${
+                              d.fulfillmentPct >= 100
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : d.fulfillmentPct >= 80
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                            }`}
+                          >
+                            {d.fulfillmentPct}%
+                          </span>
                         </div>
                       </div>
                     );
                   }}
                 />
                 <Bar
-                  yAxisId="qty"
                   dataKey="soQty"
                   name="SO Demand"
                   fill="#91171d"
@@ -476,23 +520,13 @@ export default function FulfillmentDashboard() {
                   maxBarSize={36}
                 />
                 <Bar
-                  yAxisId="qty"
                   dataKey="siQty"
                   name="SI Fulfilled"
                   fill="#be3937"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={36}
                 />
-                <Line
-                  yAxisId="pct"
-                  type="linear"
-                  dataKey="fulfillmentPct"
-                  name="Fulfillment %"
-                  stroke="#959242"
-                  strokeWidth={3}
-                  dot={{ fill: '#37150f', r: 5, strokeWidth: 2, stroke: '#f5d275' }}
-                />
-              </ComposedChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

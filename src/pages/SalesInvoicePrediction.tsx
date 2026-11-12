@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
-  Check,
   ChevronLeft,
   ChevronRight,
-  Edit2,
   RotateCcw,
   Search,
   Sparkles,
@@ -15,14 +13,12 @@ import { fmtInt } from '../lib/format';
 import { Sparkline } from '../components/ui';
 
 export default function SalesInvoicePrediction() {
-  const { data, siManualAdjustments, setSiManualAdjustment, resetSiManualAdjustments } =
+  const { data, siManualAdjustments, resetSiManualAdjustments } =
     useSalesData();
   const siReports = data.si.monthlyReports;
 
   const [method, setMethod] = useState<ForecastMethod>('ensemble');
   const [search, setSearch] = useState('');
-  const [editingCode, setEditingCode] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(20);
 
@@ -53,30 +49,6 @@ export default function SalesInvoicePrediction() {
   const adjustedCount = useMemo(() => {
     return Object.keys(siManualAdjustments).length;
   }, [siManualAdjustments]);
-
-  const handleStartEdit = (code: string, currentVal: number) => {
-    setEditingCode(code);
-    setEditValue(String(currentVal));
-  };
-
-  const handleSaveEdit = (code: string) => {
-    const trimmed = editValue.trim();
-    if (trimmed === '') {
-      setSiManualAdjustment(code, null);
-    } else {
-      const parsed = parseInt(trimmed.replace(/,/g, ''), 10);
-      if (!Number.isNaN(parsed) && parsed >= 0) {
-        setSiManualAdjustment(code, parsed);
-      }
-    }
-    setEditingCode(null);
-    setEditValue('');
-  };
-
-  const handleCancelEdit = () => {
-    setEditingCode(null);
-    setEditValue('');
-  };
 
   if (!forecast) {
     return (
@@ -260,9 +232,6 @@ export default function SalesInvoicePrediction() {
                   <th rowSpan={2} className="py-3 px-3.5 text-right min-w-[85px]">
                     Pack
                   </th>
-                  <th rowSpan={2} className="py-3 px-3.5 text-center min-w-[140px]">
-                    Action
-                  </th>
                 </tr>
                 <tr className="border-b-2 border-[#ebdcc8] bg-[#fbf7f0]/95 font-black text-xs sm:text-sm text-[#37150f] sticky top-[32px] z-20 shadow-sm">
                   {/* AI sub-headers */}
@@ -278,7 +247,6 @@ export default function SalesInvoicePrediction() {
               </thead>
               <tbody className="divide-y divide-[#ebdcc8]/70 font-medium">
                 {paginatedItems.map((it) => {
-                  const isEditing = editingCode === it.code;
                   return (
                     <tr
                       key={it.code}
@@ -327,58 +295,6 @@ export default function SalesInvoicePrediction() {
                       <td className="py-2.5 px-3.5 text-right tabular-nums text-[#37150f]/75 font-bold whitespace-nowrap">
                         {it.packSize ? `${it.packSize} pcs` : '-'}
                       </td>
-
-                      {/* Action / Quick Apply */}
-                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                        {isEditing ? (
-                          <div className="flex items-center justify-center gap-1.5">
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveEdit(it.code);
-                                if (e.key === 'Escape') handleCancelEdit();
-                              }}
-                              autoFocus
-                              placeholder="Qty"
-                              className="w-18 rounded-full border border-[#91171d] px-2.5 py-1 text-sm text-right font-black"
-                            />
-                            <button
-                              onClick={() => handleSaveEdit(it.code)}
-                              className="bubbly-btn p-1 text-emerald-700 hover:text-emerald-900 cursor-pointer"
-                              title="Save"
-                            >
-                              <Check className="size-4" />
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              className="bubbly-btn p-1 text-stone-500 hover:text-stone-800 cursor-pointer"
-                              title="Cancel"
-                            >
-                              <X className="size-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSiManualAdjustment(it.code, it.novTarget)}
-                              className="bubbly-btn rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1 text-xs font-bold text-emerald-800 cursor-pointer"
-                              title="Apply +10% target to Nov"
-                            >
-                              Use +10%
-                            </button>
-                            <button
-                              onClick={() => handleStartEdit(it.code, it.forecastQty)}
-                              className="bubbly-btn p-1.5 text-[#37150f]/50 hover:text-[#91171d] cursor-pointer"
-                              title="Custom edit"
-                            >
-                              <Edit2 className="size-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}
@@ -413,7 +329,7 @@ export default function SalesInvoicePrediction() {
                   <td className="py-3 px-3 text-right tabular-nums font-black text-[#91171d] bg-[#91171d]/10 border-r border-[#ebdcc8]">
                     {fmtInt(forecast.totals.janTargetTotal)}
                   </td>
-                  <td colSpan={2} className="py-3 px-3.5 text-center text-xs text-[#37150f]/60 font-semibold">
+                  <td className="py-3 px-3.5 text-right text-xs text-[#37150f]/60 font-semibold">
                     Units in pcs
                   </td>
                 </tr>

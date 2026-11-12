@@ -14,7 +14,7 @@ import { useSalesData } from '../hooks/useSalesData';
 export default function Layout({ children }: { children: ReactNode }) {
   const { syncing, syncNow, lastSyncedAt, error } = useSalesData();
   const location = useLocation();
-  const [logoSrc, setLogoSrc] = useState<string>('/logo.png');
+  const [logoSrc, setLogoSrc] = useState<string>('/logo.jpeg');
 
   const formattedSyncTime = lastSyncedAt
     ? new Date(lastSyncedAt).toLocaleTimeString('en-MY', {
