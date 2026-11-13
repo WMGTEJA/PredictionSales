@@ -273,19 +273,19 @@ export default function SalesOrderPrediction() {
                 </tr>
                 <tr className="border-b-2 border-[#ebdcc8] bg-[#fbf7f0]/95 font-black text-xs sm:text-sm text-[#37150f] sticky top-[32px] z-20 shadow-sm">
                   {/* AI sub-headers */}
-                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Nov</th>
-                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Dec</th>
-                  <th className="py-2 px-3 text-right bg-[#37150f]/5 border-r border-[#ebdcc8] min-w-[85px]">Jan</th>
+                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Nov (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Dec (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#37150f]/5 border-r border-[#ebdcc8] min-w-[85px]">Jan (units)</th>
 
                   {/* Target sub-headers */}
-                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Nov (+10%)</th>
-                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Dec (+10%)</th>
-                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] border-r border-[#ebdcc8] min-w-[90px]">Jan (+10%)</th>
+                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Nov (+10%) (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Dec (+10%) (units)</th> 
+                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] border-r border-[#ebdcc8] min-w-[90px]">Jan (+10%) (units)</th>
 
                   {/* Recommended Plan sub-headers */}
-                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Nov Plan</th>
-                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Dec Plan</th>
-                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] border-r border-[#ebdcc8] min-w-[90px]">Jan Plan</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Nov Plan (units)</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Dec Plan (units)</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] border-r border-[#ebdcc8] min-w-[90px]">Jan Plan (units)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ebdcc8]/70 font-medium">
