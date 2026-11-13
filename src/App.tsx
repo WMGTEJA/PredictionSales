@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { SalesDataProvider } from './hooks/useSalesData';
 import Layout from './components/Layout';
@@ -6,8 +7,21 @@ import SalesOrderPrediction from './pages/SalesOrderPrediction';
 import SalesInvoiceDashboard from './pages/SalesInvoiceDashboard';
 import SalesInvoicePrediction from './pages/SalesInvoicePrediction';
 import FulfillmentDashboard from './pages/FulfillmentDashboard';
+import { redirectToMainApp, resolveInitialSsoSession } from './lib/sso';
 
 export default function App() {
+  const [ssoUser] = useState(() => resolveInitialSsoSession());
+
+  useEffect(() => {
+    if (!ssoUser) {
+      redirectToMainApp(true);
+    }
+  }, [ssoUser]);
+
+  if (!ssoUser) {
+    return null;
+  }
+
   return (
     <SalesDataProvider>
       <Layout>
