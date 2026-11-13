@@ -42,15 +42,15 @@ export function exportCleanPredictionToExcel({
   const headersRow2 = [
     null,
     null,
-    'Nov 2026',
-    'Dec 2026',
-    'Jan 2027',
-    'Nov (+10%)',
-    'Dec (+10%)',
-    'Jan (+10%)',
-    'Nov Plan',
-    'Dec Plan',
-    'Jan Plan',
+    'Nov 2026 (units)',
+    'Dec 2026 (units)',
+    'Jan 2027 (units)',
+    'Nov (+10%) (units)',
+    'Dec (+10%) (units)',
+    'Jan (+10%) (units)',
+    'Nov Plan (units)',
+    'Dec Plan (units)',
+    'Jan Plan (units)',
   ];
 
   const dataRows = items.map((it) => [
