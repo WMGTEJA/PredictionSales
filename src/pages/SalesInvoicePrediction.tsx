@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   RotateCcw,
   Search,
   Sparkles,
@@ -11,6 +12,7 @@ import { useSalesData } from '../hooks/useSalesData';
 import { buildForecast, ForecastMethod, METHOD_INFO } from '../lib/forecast';
 import { fmtInt } from '../lib/format';
 import { Sparkline } from '../components/ui';
+import { exportCleanPredictionToExcel } from '../lib/export';
 
 export default function SalesInvoicePrediction() {
   const { data, siManualAdjustments, resetSiManualAdjustments } =
@@ -199,6 +201,24 @@ export default function SalesInvoicePrediction() {
                 <option value={-1}>All ({filteredItems.length})</option>
               </select>
             </div>
+
+            {/* Export Prediction Button */}
+            <button
+              type="button"
+              onClick={() => {
+                exportCleanPredictionToExcel({
+                  items: filteredItems,
+                  totals: forecast.totals,
+                  sheetTitle: 'SI Prediction',
+                  filename: `Sales_Invoice_Prediction_${forecast.nextPeriod ?? '2026-11'}.xlsx`,
+                });
+              }}
+              className="bubbly-btn flex items-center gap-2 rounded-full bg-[#91171d] hover:bg-[#be3937] px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold text-[#f5d275] shadow-sm shadow-[#91171d]/20 transition-all cursor-pointer whitespace-nowrap"
+              title="Download clean Sales Invoice Prediction Excel table"
+            >
+              <Download className="size-4" />
+              <span>Export Prediction</span>
+            </button>
 
             {/* Reset adjustments button */}
             {adjustedCount > 0 && (
