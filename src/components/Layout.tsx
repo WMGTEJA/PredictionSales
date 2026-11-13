@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useSalesData } from '../hooks/useSalesData';
+import { getMainAppUrl } from '../lib/sso';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { syncing, syncNow, lastSyncedAt, error } = useSalesData();
@@ -18,6 +19,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     ? import.meta.env.BASE_URL
     : `${import.meta.env.BASE_URL}/`;
   const [logoSrc, setLogoSrc] = useState<string>(`${baseUrl}logo.jpeg`);
+  const mainAppUrl = getMainAppUrl();
 
   const formattedSyncTime = lastSyncedAt
     ? new Date(lastSyncedAt).toLocaleTimeString('en-MY', {
@@ -39,7 +41,13 @@ export default function Layout({ children }: { children: ReactNode }) {
             {/* Top Row on Mobile: Brand Logo + Sync */}
             <div className="flex items-center justify-between gap-3">
               {/* Brand Logo */}
-              <NavLink to="/so/dashboard" className="flex items-center gap-2.5 group">
+              <a
+                href={mainAppUrl}
+                target="_top"
+                title="Back to WMD Hub"
+                aria-label="Back to WMD Hub"
+                className="flex items-center gap-2.5 group cursor-pointer"
+              >
                 <img
                   src={logoSrc}
                   alt="Sales Prediction Logo"
@@ -51,7 +59,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   }}
                   className="h-9 sm:h-10 w-auto max-w-[150px] sm:max-w-[200px] object-contain rounded-xl transition-transform group-hover:scale-105"
                 />
-              </NavLink>
+              </a>
 
               {/* Mobile Right: Live Status & Sync Button */}
               <div className="flex items-center gap-2 md:hidden">
