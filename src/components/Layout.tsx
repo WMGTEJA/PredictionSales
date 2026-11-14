@@ -38,31 +38,13 @@ export default function Layout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-40 w-full border-b border-[#c79754]/30 bg-[#37150f]/95 shadow-md shadow-[#37150f]/15 backdrop-blur-md">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-3 sm:py-3.5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            {/* Top Row on Mobile: Brand Logo + Sync */}
-            <div className="flex items-center justify-between gap-3">
-              {/* Brand Logo */}
-              <a
-                href={mainAppUrl}
-                target="_top"
-                title="Back to WMD Hub"
-                aria-label="Back to WMD Hub"
-                className="flex items-center gap-2.5 group cursor-pointer"
-              >
-                <img
-                  src={logoSrc}
-                  alt="Sales Prediction Logo"
-                  onError={() => {
-                    const fallbackSvg = `${baseUrl}logo.svg`;
-                    if (logoSrc !== fallbackSvg) {
-                      setLogoSrc(fallbackSvg);
-                    }
-                  }}
-                  className="h-9 sm:h-10 w-auto max-w-[150px] sm:max-w-[200px] object-contain rounded-xl transition-transform group-hover:scale-105"
-                />
-              </a>
+            {/* Top Row on Mobile: Title + Sync + WMD Logo */}
+            <div className="flex items-center justify-between gap-3 md:hidden">
+              <span className="text-sm font-extrabold tracking-wide text-[#f5d275]">
+                Sales Prediction
+              </span>
 
-              {/* Mobile Right: Live Status & Sync Button */}
-              <div className="flex items-center gap-2 md:hidden">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => syncNow()}
@@ -73,6 +55,26 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <RefreshCw className={clsx('size-3.5', syncing && 'animate-spin')} />
                   <span>{syncing ? 'Syncing…' : 'Sync'}</span>
                 </button>
+
+                <a
+                  href={mainAppUrl}
+                  target="_top"
+                  title="Back to WMD Hub"
+                  aria-label="Back to WMD Hub"
+                  className="flex items-center group cursor-pointer shrink-0"
+                >
+                  <img
+                    src={logoSrc}
+                    alt="WMD Logo"
+                    onError={() => {
+                      const fallbackSvg = `${baseUrl}logo.svg`;
+                      if (logoSrc !== fallbackSvg) {
+                        setLogoSrc(fallbackSvg);
+                      }
+                    }}
+                    className="h-9 w-auto max-w-[120px] object-contain rounded-xl transition-transform group-hover:scale-105"
+                  />
+                </a>
               </div>
             </div>
 
@@ -152,6 +154,26 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <RefreshCw className={clsx('size-4', syncing && 'animate-spin')} />
                 <span>{syncing ? 'Syncing…' : 'Sync'}</span>
               </button>
+
+              <a
+                href={mainAppUrl}
+                target="_top"
+                title="Back to WMD Hub"
+                aria-label="Back to WMD Hub"
+                className="flex items-center group cursor-pointer shrink-0"
+              >
+                <img
+                  src={logoSrc}
+                  alt="WMD Logo"
+                  onError={() => {
+                    const fallbackSvg = `${baseUrl}logo.svg`;
+                    if (logoSrc !== fallbackSvg) {
+                      setLogoSrc(fallbackSvg);
+                    }
+                  }}
+                  className="h-10 w-auto max-w-[160px] object-contain rounded-xl transition-transform group-hover:scale-105"
+                />
+              </a>
             </div>
           </div>
         </div>
