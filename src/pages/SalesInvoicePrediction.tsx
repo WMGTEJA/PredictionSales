@@ -237,8 +237,8 @@ export default function SalesInvoicePrediction() {
         <div className="mt-3.5 overflow-hidden rounded-xl border border-[#ebdcc8] bg-white">
           <div className="overflow-x-auto table-scroll max-h-[65vh]">
             <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[#ebdcc8] bg-[#fbf7f0] text-[#37150f] font-black text-center sticky top-0 z-20 shadow-sm">
+              <thead className="sticky top-0 z-20 bg-[#fbf7f0] shadow-sm">
+                <tr className="border-b border-[#ebdcc8] bg-[#fbf7f0] text-[#37150f] font-black text-center">
                   <th rowSpan={2} className="py-3 px-3.5 text-left sticky left-0 bg-[#fbf7f0] z-30 border-r border-[#ebdcc8] min-w-[120px] whitespace-nowrap">
                     Item Code
                   </th>
@@ -271,7 +271,7 @@ export default function SalesInvoicePrediction() {
                     Pack
                   </th>
                 </tr>
-                <tr className="border-b-2 border-[#ebdcc8] bg-[#fbf7f0]/95 font-black text-xs sm:text-sm text-[#37150f] sticky top-[32px] z-20 shadow-sm">
+                <tr className="border-b-2 border-[#ebdcc8] bg-[#fbf7f0] font-black text-xs sm:text-sm text-[#37150f]">
                   {/* AI sub-headers */}
                   <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Nov</th>
                   <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Dec</th>

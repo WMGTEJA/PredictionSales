@@ -147,3 +147,26 @@ body {
 .recharts-wrapper *:focus {
   outline: none;
 }
+
+/* Mobile table compaction: smaller fonts & tighter padding to reduce scrolling */
+@media (max-width: 767px) {
+  .table-scroll table {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .table-scroll th,
+  .table-scroll td {
+    font-size: 11px;
+    padding: 0.35rem 0.45rem;
+  }
+
+  .table-scroll th[class*="min-w-"] {
+    min-width: 58px;
+  }
+
+  .table-scroll td input {
+    font-size: 11px;
+    padding: 0.2rem 0.3rem;
+  }
+}
