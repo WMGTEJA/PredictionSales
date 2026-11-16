@@ -139,18 +139,7 @@ export default function SalesOrderPrediction() {
               {fmtInt(plan3MoTotal)}{' '}
               <span className="text-xs sm:text-sm font-bold text-[#854d0e]/70">units</span>
             </div>
-          </div>
-
-          {/* Card 5: Total Products */}
-          <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4 sm:p-5">
-            <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#37150f]/70">
-              Total Products
-            </div>
-            <div className="mt-1.5 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
-              {forecast.items.length}{' '}
-              <span className="text-xs sm:text-sm font-bold text-[#c79754]">SKUs</span>
-            </div>
-          </div>
+          </div>          
         </div>
       </div>
 
