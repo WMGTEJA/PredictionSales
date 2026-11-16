@@ -1,13 +1,18 @@
 import type { StoredReport } from './types';
 import { packSizeFromCode } from './packsize';
 
-export type ForecastMethod = 'ensemble' | 'smart' | 'ann' | 'weighted' | 'average' | 'last';
+export type ForecastMethod = 'auto' | 'ensemble' | 'smart' | 'ann' | 'weighted' | 'average' | 'last';
 
 export const METHOD_INFO: Record<ForecastMethod, { label: string; description: string }> = {
+  auto: {
+    label: 'Auto-Best Adaptive Model',
+    description:
+      'Automatically backtests Damped-Trend Exponential Smoothing, Croston-SBA (for intermittent SKUs), and Weighted Momentum per item, picking the lowest-error forecast.',
+  },
   ensemble: {
     label: 'Best-Fit Adaptive Ensemble',
     description:
-      'Auto-tuned supply chain model blending 3-month moving average, weighted momentum, outlier spike dampening, and dormant item detection. Recommended.',
+      'Auto-tuned supply chain model blending 3-month moving average, weighted momentum, outlier spike dampening, and dormant item detection.',
   },
   smart: {
     label: 'Smart blend',
@@ -158,6 +163,9 @@ export function forecastSeries(
       break;
     case 'ann':
       value = forecastANN(y);
+      break;
+    case 'auto':
+      value = forecastAutoBest(y);
       break;
     case 'smart': {
       if (n === 1) {
@@ -342,10 +350,132 @@ function forecastANN(y: number[]): number {
   return Math.max(0, boundedPred * mean);
 }
 
+/** Damped-Trend Holt's Exponential Smoothing (Gardner-McKenzie). */
+function forecastDampedHolt(y: number[]): number {
+  const n = y.length;
+  if (n === 0) return 0;
+  if (n === 1) return Math.max(0, y[0]);
+
+  const alpha = 0.45;
+  const beta = 0.15;
+  const phi = 0.85;
+
+  let level = y[0];
+  let trend = y[1] - y[0];
+
+  for (let i = 1; i < n; i++) {
+    const prevLevel = level;
+    const prevTrend = trend;
+    level = alpha * y[i] + (1 - alpha) * (prevLevel + phi * prevTrend);
+    trend = beta * (level - prevLevel) + (1 - beta) * phi * prevTrend;
+  }
+
+  return Math.max(0, level + phi * trend);
+}
+
+/** Croston / Syntetos-Boylan Approximation (SBA) for intermittent demand. */
+function forecastCrostonSBA(y: number[]): number {
+  const alpha = 0.25;
+  let z: number | null = null;
+  let p: number | null = null;
+  let interval = 1;
+
+  for (const val of y) {
+    if (val > 0) {
+      if (z === null || p === null) {
+        z = val;
+        p = interval;
+      } else {
+        z = alpha * val + (1 - alpha) * z;
+        p = alpha * interval + (1 - alpha) * p;
+      }
+      interval = 1;
+    } else {
+      interval += 1;
+    }
+  }
+
+  if (z === null || p === null || p <= 0) return 0;
+  return Math.max(0, (1 - alpha / 2) * (z / p));
+}
+
+/** Weighted momentum with outlier spike dampener. */
+function forecastWeightedMomentum(y: number[]): number {
+  const n = y.length;
+  if (n === 0) return 0;
+  if (n === 1) return Math.max(0, y[0]);
+
+  const s3 = y.slice(-3);
+  const ma3 = s3.reduce((a, b) => a + b, 0) / s3.length;
+
+  const s4 = y.slice(-4);
+  const weights = [1, 2, 3, 4].slice(4 - s4.length);
+  const sumW = weights.reduce((a, b) => a + b, 0);
+  let blended = s4.reduce((acc, v, i) => acc + v * weights[i], 0) / sumW;
+  blended = 0.55 * blended + 0.45 * ma3;
+
+  if (n >= 4) {
+    const prev3 = y.slice(-4, -1);
+    const med3 = [...prev3].sort((a, b) => a - b)[1];
+    if (med3 > 0 && y[n - 1] > 2.3 * med3) {
+      blended = 0.65 * blended + 0.35 * med3;
+    }
+  }
+  return Math.max(0, blended);
+}
+
+/**
+ * Per-SKU Auto-Best Model:
+ * Evaluates candidate models via rolling 1-step backtesting on recent months
+ * and selects the lowest-error forecast for this item's demand pattern.
+ */
+function forecastAutoBest(y: number[]): number {
+  const n = y.length;
+  if (n === 0) return 0;
+  if (n === 1) return Math.max(0, y[0]);
+
+  // Dormant item: 0 sales in last 2 consecutive months
+  if (n >= 3 && y[n - 1] === 0 && y[n - 2] === 0) {
+    return 0;
+  }
+
+  if (n < 4) {
+    return forecastWeightedMomentum(y);
+  }
+
+  const zeroRatio = y.filter((v) => v === 0).length / n;
+  const candidates: Array<(series: number[]) => number> = [
+    forecastDampedHolt,
+    forecastWeightedMomentum,
+  ];
+  if (zeroRatio >= 0.25) {
+    candidates.push(forecastCrostonSBA);
+  }
+
+  const evalCount = Math.min(3, n - 2);
+  let bestFn = candidates[0];
+  let bestMae = Infinity;
+
+  for (const fn of candidates) {
+    let errSum = 0;
+    for (let k = n - evalCount; k < n; k++) {
+      const pred = fn(y.slice(0, k));
+      errSum += Math.abs(y[k] - pred);
+    }
+    const mae = errSum / evalCount;
+    if (mae < bestMae) {
+      bestMae = mae;
+      bestFn = fn;
+    }
+  }
+
+  return Math.max(0, bestFn(y));
+}
+
 /** Build forecasts for every item across all saved reports. */
 export function buildForecast(
   reports: StoredReport[],
-  method: ForecastMethod = 'ensemble',
+  method: ForecastMethod = 'auto',
   manualAdjustments: Record<string, number> = {},
 ): ForecastResult {
   const sorted = [...reports].sort((a, b) => a.period.localeCompare(b.period));

@@ -6,6 +6,9 @@ dist/
 .env
 .env.local
 .env.*.local
+firebird-sync/.env
+firebird-sync/.venv/
+firebird-sync/__pycache__/
 
 # Real sales reports – never commit these to GitHub
 sample-data/

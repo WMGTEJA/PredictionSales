@@ -9,8 +9,9 @@ import {
   X,
 } from 'lucide-react';
 import { useSalesData } from '../hooks/useSalesData';
-import { buildForecast, ForecastMethod, METHOD_INFO } from '../lib/forecast';
+import { buildForecast } from '../lib/forecast';
 import { fmtInt } from '../lib/format';
+import { formatPeriodShort } from '../lib/supabase';
 import { Sparkline } from '../components/ui';
 import { exportSalesOrderPredictionToExcel } from '../lib/export';
 
@@ -19,7 +20,7 @@ export default function SalesOrderPrediction() {
     useSalesData();
   const soReports = data.so.monthlyReports;
 
-  const [method, setMethod] = useState<ForecastMethod>('ensemble');
+  const method = 'auto' as const;
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(20);
@@ -27,7 +28,7 @@ export default function SalesOrderPrediction() {
   const forecast = useMemo(() => {
     if (!soReports || soReports.length === 0) return null;
     return buildForecast(soReports, method, soManualAdjustments);
-  }, [soReports, method, soManualAdjustments]);
+  }, [soReports, soManualAdjustments]);
 
   const filteredItems = useMemo(() => {
     if (!forecast) return [];
@@ -68,40 +69,36 @@ export default function SalesOrderPrediction() {
   const plan3MoTotal =
     forecast.totals.novPlanTotal + forecast.totals.decPlanTotal + forecast.totals.janPlanTotal;
 
+  const lastPeriod = forecast.periods[forecast.periods.length - 1];
+  const lastPeriodLabel = lastPeriod ? formatPeriodShort(lastPeriod) : 'Latest';
+  const forecastRangeLabel = `${formatPeriodShort(forecast.next3Periods[0])} – ${formatPeriodShort(forecast.next3Periods[2])}`;
+
   return (
     <div className="w-full space-y-5 sm:space-y-6 pb-12">
-      {/* Top Controls & Forecast Model Selector */}
+      {/* Top Controls & Forecast Model Badge */}
       <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ebdcc8] pb-4">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full bg-[#91171d] px-4 py-1.5 text-xs sm:text-sm font-black text-[#f5d275]">
               <Sparkles className="size-4" />
-              <span>SO Forecast • Nov 2026 – Jan 2027</span>
+              <span>SO Forecast • {forecastRangeLabel}</span>
             </span>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-sm font-bold text-[#37150f]/80">Model:</span>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value as ForecastMethod)}
-              className="rounded-full border border-[#c79754]/30 bg-[#fbf7f0] px-4 py-2 text-xs sm:text-sm font-bold text-[#37150f] focus:outline-none focus:border-[#91171d] cursor-pointer"
-            >
-              {(Object.keys(METHOD_INFO) as ForecastMethod[]).map((m) => (
-                <option key={m} value={m}>
-                  {METHOD_INFO[m].label}
-                </option>
-              ))}
-            </select>
+            <span className="rounded-full border border-[#c79754]/30 bg-[#fbf7f0] px-4 py-1.5 text-xs sm:text-sm font-bold text-[#37150f]">
+              Model: Auto-Best (Damped Holt + Croston-SBA)
+              {forecast.backtest ? ` • ${Math.round(forecast.backtest.accuracy * 100)}% backtest acc.` : ''}
+            </span>
           </div>
         </div>
 
         {/* Prominent Bubbly KPI Grid */}
         <div className="mt-5 grid grid-cols-2 gap-3.5 sm:gap-5 lg:grid-cols-5">
-          {/* Card 1: Oct Actual */}
+          {/* Card 1: Latest Actual */}
           <div className="bubbly-card rounded-2xl border border-[#ebdcc8] bg-[#fbf7f0]/70 p-4 sm:p-5">
             <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#37150f]/70">
-              Oct 2026 Actual
+              {lastPeriodLabel} Actual
             </div>
             <div className="mt-1.5 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
               {fmtInt(octActual)} <span className="text-xs sm:text-sm font-bold text-[#c79754]">units</span>
