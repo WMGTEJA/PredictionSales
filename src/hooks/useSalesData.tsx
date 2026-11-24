@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -16,6 +17,7 @@ import {
   buildMasterDataFromSupabaseRows,
   DEFAULT_DATA_SELECTION,
   extractFilterOptions,
+  fetchLatestSyncedAt,
   fetchSupabaseSalesRows,
   getCachedSupabaseRows,
   type DataSelectionConfig,
@@ -45,7 +47,7 @@ interface SalesDataContextType {
 
 const SO_MANUAL_KEY = 'prediction-sales:so-manual-adjustments-v3';
 const SI_MANUAL_KEY = 'prediction-sales:si-manual-adjustments-v3';
-const SELECTION_KEY = 'prediction-sales:data-selection-v1';
+const SELECTION_KEY = 'prediction-sales:data-selection-v2';
 
 function loadManual(key: string): Record<string, number> {
   try {
@@ -201,8 +203,56 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const lastSyncedAtRef = useRef<string | null>(lastSyncedAt);
+  useEffect(() => {
+    lastSyncedAtRef.current = lastSyncedAt;
+  }, [lastSyncedAt]);
+
   useEffect(() => {
     let mounted = true;
+    let lastCheckedMs = 0;
+
+    const pullFreshFromSupabase = async () => {
+      if (!mounted) return;
+      setSyncing(true);
+      try {
+        const rows = await fetchSupabaseSalesRows();
+        if (mounted && rows.length > 0) {
+          setSupabaseRows(rows);
+          const latest = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
+          const syncedTime = latest || new Date().toISOString();
+          setLastSyncedAt(syncedTime);
+          try {
+            localStorage.setItem(STORAGE_KEY_LAST_SYNC, syncedTime);
+          } catch {}
+        } else if (mounted) {
+          const live = await fetchLiveMasterData();
+          if (mounted) {
+            setFallbackData(live);
+            setLastSyncedAt(live.syncedAt);
+          }
+        }
+      } catch (e) {
+        console.warn('Automatic background live sync failed (using local data):', e);
+      } finally {
+        if (mounted) setSyncing(false);
+      }
+    };
+
+    const checkForUpdates = async () => {
+      const now = Date.now();
+      if (now - lastCheckedMs < 2 * 60 * 1000) return;
+      lastCheckedMs = now;
+      try {
+        const remoteSyncedAt = await fetchLatestSyncedAt();
+        if (remoteSyncedAt && (!lastSyncedAtRef.current || remoteSyncedAt > lastSyncedAtRef.current)) {
+          await pullFreshFromSupabase();
+        }
+      } catch {
+        // Silent background check failure
+      }
+    };
+
     (async () => {
       try {
         const cachedSb = await getCachedSupabaseRows();
@@ -218,35 +268,23 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
         console.warn('Cached read error:', e);
       }
 
-      if (mounted) {
-        setSyncing(true);
-        try {
-          const rows = await fetchSupabaseSalesRows();
-          if (mounted && rows.length > 0) {
-            setSupabaseRows(rows);
-            const latest = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
-            const syncedTime = latest || new Date().toISOString();
-            setLastSyncedAt(syncedTime);
-            try {
-              localStorage.setItem(STORAGE_KEY_LAST_SYNC, syncedTime);
-            } catch {}
-          } else if (mounted) {
-            const live = await fetchLiveMasterData();
-            if (mounted) {
-              setFallbackData(live);
-              setLastSyncedAt(live.syncedAt);
-            }
-          }
-        } catch (e) {
-          console.warn('Automatic background live sync failed (using local data):', e);
-        } finally {
-          if (mounted) setSyncing(false);
-        }
-      }
+      lastCheckedMs = Date.now();
+      await pullFreshFromSupabase();
     })();
+
+    // Auto-check Supabase every 5 minutes and when returning to the tab
+    const intervalId = window.setInterval(checkForUpdates, 5 * 60 * 1000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void checkForUpdates();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       mounted = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 

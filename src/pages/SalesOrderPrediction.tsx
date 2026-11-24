@@ -11,7 +11,7 @@ import {
 import { useSalesData } from '../hooks/useSalesData';
 import { buildForecast } from '../lib/forecast';
 import { fmtInt } from '../lib/format';
-import { formatPeriodShort } from '../lib/supabase';
+import { formatMonthOnly, formatPeriodShort } from '../lib/supabase';
 import { Sparkline } from '../components/ui';
 import { exportSalesOrderPredictionToExcel } from '../lib/export';
 
@@ -71,6 +71,8 @@ export default function SalesOrderPrediction() {
 
   const lastPeriod = forecast.periods[forecast.periods.length - 1];
   const lastPeriodLabel = lastPeriod ? formatPeriodShort(lastPeriod) : 'Latest';
+  const lastMonthShort = lastPeriod ? formatMonthOnly(lastPeriod) : 'Latest';
+  const [m1Label, m2Label, m3Label] = forecast.next3Periods.map((p) => formatMonthOnly(p));
   const forecastRangeLabel = `${formatPeriodShort(forecast.next3Periods[0])} – ${formatPeriodShort(forecast.next3Periods[2])}`;
 
   return (
@@ -195,8 +197,9 @@ export default function SalesOrderPrediction() {
                 exportSalesOrderPredictionToExcel({
                   items: filteredItems,
                   totals: forecast.totals,
+                  next3Periods: forecast.next3Periods,
                   sheetTitle: 'SO Prediction',
-                  filename: `Sales_Order_Prediction_${forecast.nextPeriod ?? '2026-11'}.xlsx`,
+                  filename: `Sales_Order_Prediction_${forecast.nextPeriod ?? 'next'}.xlsx`,
                 });
               }}
               className="bubbly-btn flex items-center gap-2 rounded-full bg-[#91171d] hover:bg-[#be3937] px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold text-[#f5d275] shadow-sm shadow-[#91171d]/20 transition-all cursor-pointer whitespace-nowrap"
@@ -235,7 +238,7 @@ export default function SalesOrderPrediction() {
                     Trend
                   </th>
                   <th rowSpan={2} className="py-3 px-3.5 text-right bg-amber-50/70 border-r border-[#ebdcc8] min-w-[95px]">
-                    Oct Actual
+                    {lastMonthShort} Actual
                   </th>
 
                   {/* Group 1: AI Model Prediction */}
@@ -259,19 +262,19 @@ export default function SalesOrderPrediction() {
                 </tr>
                 <tr className="border-b-2 border-[#ebdcc8] bg-[#fbf7f0] font-black text-xs sm:text-sm text-[#37150f]">
                   {/* AI sub-headers */}
-                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Nov (units)</th>
-                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">Dec (units)</th>
-                  <th className="py-2 px-3 text-right bg-[#37150f]/5 border-r border-[#ebdcc8] min-w-[85px]">Jan (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">{m1Label} (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#37150f]/5 min-w-[85px]">{m2Label} (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#37150f]/5 border-r border-[#ebdcc8] min-w-[85px]">{m3Label} (units)</th>
 
                   {/* Target sub-headers */}
-                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Nov (+10%) (units)</th>
-                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">Dec (+10%) (units)</th> 
-                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] border-r border-[#ebdcc8] min-w-[90px]">Jan (+10%) (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">{m1Label} (+10%) (units)</th>
+                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] min-w-[90px]">{m2Label} (+10%) (units)</th> 
+                  <th className="py-2 px-3 text-right bg-[#91171d]/5 font-black text-[#91171d] border-r border-[#ebdcc8] min-w-[90px]">{m3Label} (+10%) (units)</th>
 
                   {/* Recommended Plan sub-headers */}
-                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Nov Plan (units)</th>
-                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">Dec Plan (units)</th>
-                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] border-r border-[#ebdcc8] min-w-[90px]">Jan Plan (units)</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">{m1Label} Plan (units)</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] min-w-[90px]">{m2Label} Plan (units)</th>
+                  <th className="py-2 px-3 text-right bg-amber-500/10 font-black text-[#854d0e] border-r border-[#ebdcc8] min-w-[90px]">{m3Label} Plan (units)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ebdcc8]/70 font-medium">

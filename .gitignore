@@ -9,6 +9,10 @@ dist/
 firebird-sync/.env
 firebird-sync/.venv/
 firebird-sync/__pycache__/
+firebird-sync/build/
+firebird-sync/server-package/.env
+firebird-sync/server-package/*.exe
+firebird-sync/server-package/*.log*
 
 # Real sales reports – never commit these to GitHub
 sample-data/

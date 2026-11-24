@@ -21,7 +21,12 @@ import {
   X,
 } from 'lucide-react';
 import { useSalesData } from '../hooks/useSalesData';
-import { PERIOD_KEYS, PERIOD_TO_SHORT } from '../lib/sheets';
+import { PERIOD_KEYS } from '../lib/sheets';
+import {
+  formatPeriodColumnLabel,
+  formatPeriodShort,
+  getRollingDisplayPeriods,
+} from '../lib/supabase';
 import { fmtCompact, fmtInt } from '../lib/format';
 
 export default function SalesInvoiceDashboard() {
@@ -38,6 +43,18 @@ export default function SalesInvoiceDashboard() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 15;
 
+  // Rolling latest 10 months for display
+  const displayPeriods = useMemo(() => {
+    const allPeriods = si.monthlyReports.map((r) => r.period).sort();
+    return allPeriods.length > 0 ? getRollingDisplayPeriods(allPeriods, 10) : PERIOD_KEYS;
+  }, [si.monthlyReports]);
+
+  const periodCount = Math.max(1, displayPeriods.length);
+  const displayRangeLabel =
+    displayPeriods.length > 0
+      ? `${formatPeriodShort(displayPeriods[0])} – ${formatPeriodShort(displayPeriods[displayPeriods.length - 1])}`
+      : 'Latest 10 Months';
+
   // Filter rows by company
   const filteredRows = useMemo(() => {
     if (selectedCompanyKey === 'all') return si.rows;
@@ -47,7 +64,7 @@ export default function SalesInvoiceDashboard() {
     );
   }, [si.rows, selectedCompanyKey]);
 
-  // Aggregate item monthly totals under current company filter
+  // Aggregate item monthly totals under current company filter (strictly 10-month window)
   const itemAggregates = useMemo(() => {
     const map = new Map<
       string,
@@ -61,6 +78,12 @@ export default function SalesInvoiceDashboard() {
     >();
 
     for (const r of filteredRows) {
+      let rowWindowQty = 0;
+      for (const p of displayPeriods) {
+        rowWindowQty += r.monthlyQty[p] || 0;
+      }
+      if (rowWindowQty === 0) continue;
+
       let it = map.get(r.itemCode);
       if (!it) {
         it = {
@@ -70,18 +93,18 @@ export default function SalesInvoiceDashboard() {
           totalQty: 0,
           companyCount: 0,
         };
-        PERIOD_KEYS.forEach((p) => (it!.monthly[p] = 0));
+        displayPeriods.forEach((p) => (it!.monthly[p] = 0));
         map.set(r.itemCode, it);
       }
-      PERIOD_KEYS.forEach((p) => {
+      displayPeriods.forEach((p) => {
         it!.monthly[p] = (it!.monthly[p] || 0) + (r.monthlyQty[p] || 0);
       });
-      it.totalQty += r.totalQty;
+      it.totalQty += rowWindowQty;
       it.companyCount++;
     }
 
     return Array.from(map.values()).sort((a, b) => b.totalQty - a.totalQty);
-  }, [filteredRows]);
+  }, [filteredRows, displayPeriods]);
 
   // Available items for dropdown/search
   const filteredItemList = useMemo(() => {
@@ -100,27 +123,26 @@ export default function SalesInvoiceDashboard() {
     const desc = agg?.desc || itemMeta?.desc || selectedItemCode;
 
     // Monthly breakdown for chart
-    const monthlyList = PERIOD_KEYS.map((p) => {
+    const monthlyList = displayPeriods.map((p) => {
       const q = agg?.monthly[p] || 0;
       return {
         period: p,
-        month: PERIOD_TO_SHORT[p],
+        month: formatPeriodColumnLabel(p, displayPeriods),
+        fullLabel: formatPeriodShort(p),
         qty: Math.round(q * 100) / 100,
       };
     });
 
-    // Breakdown by company for this item
+    // Breakdown by company for this item (10-month window)
     const companyOrders: { code: string; name: string; qty: number }[] = [];
-    for (const r of si.rows) {
+    for (const r of filteredRows) {
       if (r.itemCode === selectedItemCode) {
-        if (
-          selectedCompanyKey === 'all' ||
-          `${r.companyCode}___${r.companyName}` === selectedCompanyKey
-        ) {
+        const qty = displayPeriods.reduce((s, p) => s + (r.monthlyQty[p] || 0), 0);
+        if (qty !== 0) {
           companyOrders.push({
             code: r.companyCode,
             name: r.companyName,
-            qty: r.totalQty,
+            qty,
           });
         }
       }
@@ -128,7 +150,7 @@ export default function SalesInvoiceDashboard() {
     companyOrders.sort((a, b) => b.qty - a.qty);
 
     const totalQty = agg?.totalQty || 0;
-    const avgMonthly = Math.round((totalQty / 10) * 100) / 100;
+    const avgMonthly = Math.round((totalQty / periodCount) * 100) / 100;
     const peak = [...monthlyList].sort((a, b) => b.qty - a.qty)[0];
 
     return {
@@ -136,27 +158,28 @@ export default function SalesInvoiceDashboard() {
       desc,
       totalQty,
       avgMonthly,
-      peakMonth: peak && peak.qty > 0 ? `${peak.month} (${fmtInt(peak.qty)})` : 'N/A',
+      peakMonth: peak && peak.qty > 0 ? `${peak.fullLabel} (${fmtInt(peak.qty)})` : 'N/A',
       monthlyList,
       companyOrders,
     };
-  }, [selectedItemCode, itemAggregates, si.items, si.rows, selectedCompanyKey]);
+  }, [selectedItemCode, itemAggregates, si.items, filteredRows, displayPeriods, periodCount]);
 
   // Overall monthly totals under company filter
   const overallMonthlyTrend = useMemo(() => {
     const totals: Record<string, number> = {};
-    PERIOD_KEYS.forEach((p) => (totals[p] = 0));
+    displayPeriods.forEach((p) => (totals[p] = 0));
     for (const r of filteredRows) {
-      PERIOD_KEYS.forEach((p) => {
+      displayPeriods.forEach((p) => {
         totals[p] = (totals[p] || 0) + (r.monthlyQty[p] || 0);
       });
     }
-    return PERIOD_KEYS.map((p) => ({
+    return displayPeriods.map((p) => ({
       period: p,
-      month: PERIOD_TO_SHORT[p],
+      month: formatPeriodColumnLabel(p, displayPeriods),
+      fullLabel: formatPeriodShort(p),
       qty: Math.round((totals[p] || 0) * 100) / 100,
     }));
-  }, [filteredRows]);
+  }, [filteredRows, displayPeriods]);
 
   // Top 10 items
   const top10Items = useMemo(() => {
@@ -181,10 +204,10 @@ export default function SalesInvoiceDashboard() {
     return tableDisplayItems.slice(start, start + pageSize);
   }, [tableDisplayItems, currentPage, pageSize]);
 
-  // Total summary metrics
+  // Total summary metrics (strictly 10-month window)
   const totalVolume = useMemo(() => {
-    return filteredRows.reduce((sum, r) => sum + r.totalQty, 0);
-  }, [filteredRows]);
+    return itemAggregates.reduce((sum, it) => sum + it.totalQty, 0);
+  }, [itemAggregates]);
 
   // Get active company display name
   const activeCompanyDisplayName = useMemo(() => {
@@ -366,7 +389,7 @@ export default function SalesInvoiceDashboard() {
             </div>
           </div>
           <div className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#37150f] tracking-tight">
-            {fmtCompact(Math.round(totalVolume / 10))}{' '}
+            {fmtCompact(Math.round(totalVolume / periodCount))}{' '}
             <span className="text-xs sm:text-sm font-bold text-[#c79754]">/mo</span>
           </div>
         </div>
@@ -434,7 +457,7 @@ export default function SalesInvoiceDashboard() {
                       return (
                         <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
                           <div className="text-xs font-bold text-[#f5d275]">
-                            {d.month} 2026 ({d.period})
+                            {d.fullLabel} ({d.period})
                           </div>
                           <div className="mt-1 text-base font-black">
                             Invoiced: {fmtInt(d.qty)} pcs
@@ -505,7 +528,7 @@ export default function SalesInvoiceDashboard() {
                   Sales Invoice Trend
                 </span>
                 <h3 className="mt-1.5 text-lg sm:text-xl font-black text-[#37150f]">
-                  Monthly Volume (Jan – Oct 2026)
+                  Monthly Volume ({displayRangeLabel})
                 </h3>
               </div>
               <div className="text-right">
@@ -540,7 +563,7 @@ export default function SalesInvoiceDashboard() {
                       return (
                         <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl">
                           <div className="text-xs font-bold text-[#f5d275]">
-                            {d.month} 2026 ({d.period})
+                            {d.fullLabel} ({d.period})
                           </div>
                           <div className="mt-1 text-base font-black">
                             Invoiced: {fmtInt(d.qty)} pcs
@@ -572,7 +595,7 @@ export default function SalesInvoiceDashboard() {
           <div className="rounded-2xl sm:rounded-3xl border border-[#ebdcc8] bg-white p-5 shadow-sm">
             <h4 className="text-base font-black text-[#37150f] flex items-center gap-2">
               <TrendingUp className="size-4.5 text-[#91171d]" />
-              Top 10 Products (2026)
+              Top 10 Products ({displayRangeLabel})
             </h4>
 
             <div className="mt-3 max-h-80 overflow-y-auto space-y-2.5 pr-1 table-scroll">
@@ -642,9 +665,9 @@ export default function SalesInvoiceDashboard() {
                   Item Code
                 </th>
                 <th className="py-3 px-3.5 min-w-[180px]">Description</th>
-                {PERIOD_KEYS.map((p) => (
+                {displayPeriods.map((p) => (
                   <th key={p} className="py-3 px-2.5 text-right whitespace-nowrap">
-                    {PERIOD_TO_SHORT[p]}
+                    {formatPeriodColumnLabel(p, displayPeriods)}
                   </th>
                 ))}
                 <th className="py-3 px-3.5 text-right whitespace-nowrap">Total</th>
@@ -663,7 +686,7 @@ export default function SalesInvoiceDashboard() {
                     {it.code}
                   </td>
                   <td className="py-3 px-3.5 max-w-[240px] truncate text-[#37150f] font-semibold">{it.desc}</td>
-                  {PERIOD_KEYS.map((p) => (
+                  {displayPeriods.map((p) => (
                     <td key={p} className="py-3 px-2.5 text-right tabular-nums text-[#37150f] font-bold">
                       {it.monthly[p] ? fmtInt(it.monthly[p]) : '-'}
                     </td>

@@ -20,10 +20,17 @@ import {
 } from 'lucide-react';
 import { useSalesData } from '../hooks/useSalesData';
 import { fmtCompact, fmtInt } from '../lib/format';
+import { formatPeriodShort } from '../lib/supabase';
 
 export default function FulfillmentDashboard() {
   const { data } = useSalesData();
   const fulfillment = data.fulfillment;
+  const displayRangeLabel =
+    fulfillment.monthly.length > 0
+      ? `${formatPeriodShort(fulfillment.monthly[0].period)} – ${formatPeriodShort(
+          fulfillment.monthly[fulfillment.monthly.length - 1].period,
+        )}`
+      : 'Latest 10 Months';
 
   const [selectedItemCode, setSelectedItemCode] = useState<string>('');
   const [itemSearchInput, setItemSearchInput] = useState<string>('');
@@ -366,7 +373,7 @@ export default function FulfillmentDashboard() {
                     return (
                       <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl min-w-[200px]">
                         <div className="text-xs font-bold text-[#f5d275] border-b border-white/10 pb-1 mb-2">
-                          {d.month} 2026
+                          {formatPeriodShort(d.period)}
                         </div>
                         <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3">
                           <span className="flex items-center gap-1.5">
@@ -433,7 +440,7 @@ export default function FulfillmentDashboard() {
                 SO vs SI Monthly
               </span>
               <h3 className="mt-1.5 text-lg sm:text-xl font-black text-[#37150f]">
-                Demand vs Fulfilled (Jan – Oct 2026)
+                Demand vs Fulfilled ({displayRangeLabel})
               </h3>
             </div>
             <div className="flex items-center gap-4 text-xs sm:text-sm font-bold">
@@ -472,7 +479,7 @@ export default function FulfillmentDashboard() {
                     return (
                       <div className="rounded-2xl border border-[#c79754]/40 bg-[#37150f] p-3.5 text-white shadow-xl min-w-[200px]">
                         <div className="text-xs font-bold text-[#f5d275] border-b border-white/10 pb-1 mb-2">
-                          {d.month} 2026
+                          {formatPeriodShort(d.period)}
                         </div>
                         <div className="flex items-center justify-between text-xs sm:text-sm font-semibold gap-3">
                           <span className="flex items-center gap-1.5">

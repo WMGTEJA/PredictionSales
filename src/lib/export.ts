@@ -6,6 +6,7 @@ import { displayCode, periodLabel } from './format';
 export interface CleanPredictionExportOptions {
   items: ItemForecast[];
   totals?: ForecastResult['totals'];
+  next3Periods?: [string, string, string];
   sheetTitle?: string;
   filename?: string;
 }
@@ -14,17 +15,26 @@ export interface CleanPredictionExportOptions {
  * Download a clean, styled Excel sheet containing strictly:
  * - Item Code
  * - Description
- * - AI Prediction (Nov, Dec, Jan)
- * - Add 10% from previous month (Nov, Dec, Jan)
- * - Recommended Plan (Nov, Dec, Jan)
+ * - AI Prediction (Next 3 Months)
+ * - Add 10% from previous month (Next 3 Months)
+ * - Recommended Plan (Next 3 Months)
  * Formatted with bold merged headers, clean column widths, and comma-formatted numbers.
  */
 export function exportCleanPredictionToExcel({
   items,
   totals,
+  next3Periods = ['2026-11', '2026-12', '2027-01'],
   sheetTitle = 'SO Prediction',
   filename = 'Sales_Order_Prediction.xlsx',
 }: CleanPredictionExportOptions) {
+  const [p1, p2, p3] = next3Periods;
+  const full1 = periodLabel(p1);
+  const full2 = periodLabel(p2);
+  const full3 = periodLabel(p3);
+  const short1 = full1.split(' ')[0] || full1;
+  const short2 = full2.split(' ')[0] || full2;
+  const short3 = full3.split(' ')[0] || full3;
+
   const headersRow1 = [
     'ITEM CODE',
     'DESCRIPTION',
@@ -42,15 +52,15 @@ export function exportCleanPredictionToExcel({
   const headersRow2 = [
     null,
     null,
-    'Nov 2026 (units)',
-    'Dec 2026 (units)',
-    'Jan 2027 (units)',
-    'Nov (+10%) (units)',
-    'Dec (+10%) (units)',
-    'Jan (+10%) (units)',
-    'Nov Plan (units)',
-    'Dec Plan (units)',
-    'Jan Plan (units)',
+    `${full1} (units)`,
+    `${full2} (units)`,
+    `${full3} (units)`,
+    `${short1} (+10%) (units)`,
+    `${short2} (+10%) (units)`,
+    `${short3} (+10%) (units)`,
+    `${short1} Plan (units)`,
+    `${short2} Plan (units)`,
+    `${short3} Plan (units)`,
   ];
 
   const dataRows = items.map((it) => [
@@ -231,18 +241,19 @@ export function exportForecastToExcel(result: ForecastResult) {
     result.periods.forEach((p, i) => {
       row[`${periodLabel(p)} Qty (pcs)`] = it.qtyHistory[i];
     });
+    const [f1, f2, f3] = result.next3Periods.map((p) => periodLabel(p));
     // 3-Month AI Predictions
-    row['Nov 2026 AI (pcs)'] = it.novAi;
-    row['Dec 2026 AI (pcs)'] = it.decAi;
-    row['Jan 2027 AI (pcs)'] = it.janAi;
+    row[`${f1} AI (pcs)`] = it.novAi;
+    row[`${f2} AI (pcs)`] = it.decAi;
+    row[`${f3} AI (pcs)`] = it.janAi;
     // 3-Month Target (+10% MoM) Predictions
-    row['Nov 2026 Target (+10%) (pcs)'] = it.novTarget;
-    row['Dec 2026 Target (+10%) (pcs)'] = it.decTarget;
-    row['Jan 2027 Target (+10%) (pcs)'] = it.janTarget;
+    row[`${f1} Target (+10%) (pcs)`] = it.novTarget;
+    row[`${f2} Target (+10%) (pcs)`] = it.decTarget;
+    row[`${f3} Target (+10%) (pcs)`] = it.janTarget;
     // 3-Month Recommended Plan (Strategy A Decision Blend)
-    row['Nov 2026 Recommended Plan (pcs)'] = it.novPlan;
-    row['Dec 2026 Recommended Plan (pcs)'] = it.decPlan;
-    row['Jan 2027 Recommended Plan (pcs)'] = it.janPlan;
+    row[`${f1} Recommended Plan (pcs)`] = it.novPlan;
+    row[`${f2} Recommended Plan (pcs)`] = it.decPlan;
+    row[`${f3} Recommended Plan (pcs)`] = it.janPlan;
     row[`Forecast ${next} (pcs)`] = it.forecastQty;
     row['Status'] = it.isManual ? 'Manual Adjustment' : 'AI Prediction';
     if (it.isManual) {

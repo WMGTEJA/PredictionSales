@@ -33,7 +33,7 @@ export interface DataSelectionConfig {
 
 export const DEFAULT_DATA_SELECTION: DataSelectionConfig = {
   sourceDb: 'ALL',
-  fromPeriod: '2026-01',
+  fromPeriod: '',
   toPeriod: '',
   qtyField: 'sqty',
   soTables: ['SO'],
@@ -69,6 +69,60 @@ export function formatMonthOnly(period: string): string {
   const [, m] = period.split('-').map(Number);
   if (!m || m < 1 || m > 12) return period;
   return SHORT_MONTHS[m - 1];
+}
+
+/**
+ * Returns the latest eligible YYYY-MM period under the 50%-of-month rule:
+ * - If at least 50% of the current calendar month has elapsed (day >= ceil(daysInMonth / 2)),
+ *   the current month is eligible once SQL data exists for it.
+ * - Otherwise, hold back the current partial month and cap at the previous month.
+ */
+export function getAutoMaxPeriod(now: Date = new Date()): string {
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1..12
+  const day = now.getDate();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const halfwayDay = Math.ceil(daysInMonth / 2);
+
+  if (day >= halfwayDay) {
+    return `${year}-${String(month).padStart(2, '0')}`;
+  }
+  if (month === 1) {
+    return `${year - 1}-12`;
+  }
+  return `${year}-${String(month - 1).padStart(2, '0')}`;
+}
+
+/** Returns up to the latest `count` periods (default 10) for rolling dashboard display. */
+export function getRollingDisplayPeriods(periods: string[], count = 10): string[] {
+  if (periods.length <= count) return periods;
+  return periods.slice(-count);
+}
+
+/**
+ * Formats a YYYY-MM period for compact table column headers & X-axis labels.
+ * Shows "Jan" when all displayed periods are in the same year, or "Jan '27" when spanning years.
+ */
+export function formatPeriodColumnLabel(period: string, displayedPeriods: string[]): string {
+  const [y, m] = period.split('-').map(Number);
+  if (!y || !m || m < 1 || m > 12) return period;
+  const years = new Set(displayedPeriods.map((p) => p.slice(0, 4)));
+  if (years.size <= 1) return SHORT_MONTHS[m - 1];
+  return `${SHORT_MONTHS[m - 1]} '${String(y).slice(-2)}`;
+}
+
+/** Lightweight check for the newest synced_at timestamp in Supabase (1 row). */
+export async function fetchLatestSyncedAt(): Promise<string | null> {
+  const url = `${SUPABASE_URL}/rest/v1/sales_monthly_records?select=synced_at&order=synced_at.desc&limit=1`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  });
+  if (!res.ok) return null;
+  const rows = (await res.json()) as Array<{ synced_at?: string }>;
+  return rows[0]?.synced_at ?? null;
 }
 
 export async function fetchSupabaseSalesRows(): Promise<SupabaseSalesRow[]> {
@@ -168,10 +222,12 @@ export function buildMasterDataFromSupabaseRows(
   // Backward compatibility if any rows still have doc_type === 'SI'
   if (siSet.has('IV')) siSet.add('SI');
 
+  const effectiveToPeriod = config.toPeriod || getAutoMaxPeriod();
+
   const rows = allRows.filter((r) => {
     if (config.sourceDb !== 'ALL' && r.source_db !== config.sourceDb) return false;
     if (config.fromPeriod && r.period < config.fromPeriod) return false;
-    if (config.toPeriod && r.period > config.toPeriod) return false;
+    if (effectiveToPeriod && r.period > effectiveToPeriod) return false;
     if (config.stockGroup !== 'ALL' && (r.stock_group || '').trim() !== config.stockGroup) return false;
     return true;
   });
@@ -326,16 +382,19 @@ export function buildMasterDataFromSupabaseRows(
     };
   });
 
-  // --- Fulfillment (SO vs SI) ---
+  // --- Fulfillment (SO vs SI) — rolling latest 10 display periods ---
+  const displayPeriods = getRollingDisplayPeriods(periods, 10);
   const allItemCodes = new Set<string>([...soItemDesc.keys(), ...siItemDesc.keys()]);
   const itemFulfillments: ItemFulfillment[] = [];
+  let fulfillmentSoTotal = 0;
+  let fulfillmentSiTotal = 0;
 
   for (const code of allItemCodes) {
     const desc = soItemDesc.get(code) || siItemDesc.get(code) || code;
     let soItemTotal = 0;
     let siItemTotal = 0;
 
-    const monthly: MonthFulfillment[] = periods.map((p) => {
+    const monthly: MonthFulfillment[] = displayPeriods.map((p) => {
       const soQ = soMonthItemMap.get(p)?.get(code)?.qty || 0;
       const siQ = siMonthItemMap.get(p)?.get(code)?.qty || 0;
       soItemTotal += soQ;
@@ -343,13 +402,18 @@ export function buildMasterDataFromSupabaseRows(
       const pct = soQ > 0 ? Math.round((siQ / soQ) * 1000) / 10 : siQ > 0 ? 100 : 0;
       return {
         period: p,
-        month: formatMonthOnly(p),
+        month: formatPeriodColumnLabel(p, displayPeriods),
         soQty: soQ,
         siQty: siQ,
         fulfillmentPct: pct,
         variance: Math.round((siQ - soQ) * 100) / 100,
       };
     });
+
+    if (soItemTotal === 0 && siItemTotal === 0) continue;
+
+    fulfillmentSoTotal += soItemTotal;
+    fulfillmentSiTotal += siItemTotal;
 
     const overallPct =
       soItemTotal > 0 ? Math.round((siItemTotal / soItemTotal) * 1000) / 10 : siItemTotal > 0 ? 100 : 0;
@@ -373,13 +437,13 @@ export function buildMasterDataFromSupabaseRows(
 
   itemFulfillments.sort((a, b) => b.soTotal + b.siTotal - (a.soTotal + a.siTotal));
 
-  const monthlySummary: MonthFulfillment[] = periods.map((p) => {
+  const monthlySummary: MonthFulfillment[] = displayPeriods.map((p) => {
     const soQ = soMonthlyTotals[p] || 0;
     const siQ = siMonthlyTotals[p] || 0;
     const pct = soQ > 0 ? Math.round((siQ / soQ) * 1000) / 10 : 0;
     return {
       period: p,
-      month: formatMonthOnly(p),
+      month: formatPeriodColumnLabel(p, displayPeriods),
       soQty: soQ,
       siQty: Math.round(siQ * 100) / 100,
       fulfillmentPct: pct,
@@ -388,10 +452,11 @@ export function buildMasterDataFromSupabaseRows(
   });
 
   const fulfillment: FulfillmentSummary = {
-    totalSoQty: soTotalQty,
-    totalSiQty: siTotalQty,
-    overallFulfillmentPct: soTotalQty > 0 ? Math.round((siTotalQty / soTotalQty) * 1000) / 10 : 0,
-    totalVariance: Math.round((siTotalQty - soTotalQty) * 100) / 100,
+    totalSoQty: fulfillmentSoTotal,
+    totalSiQty: Math.round(fulfillmentSiTotal * 100) / 100,
+    overallFulfillmentPct:
+      fulfillmentSoTotal > 0 ? Math.round((fulfillmentSiTotal / fulfillmentSoTotal) * 1000) / 10 : 0,
+    totalVariance: Math.round((fulfillmentSiTotal - fulfillmentSoTotal) * 100) / 100,
     monthly: monthlySummary,
     items: itemFulfillments,
     stats: {

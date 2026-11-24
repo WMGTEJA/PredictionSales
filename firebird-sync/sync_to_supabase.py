@@ -1,13 +1,29 @@
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 import os
+import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 import firebirdsql
 
-load_dotenv(Path(__file__).with_name('.env'))
+BASE_DIR = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / '.env')
+
+LOG_PATH = BASE_DIR / 'sync.log'
+logger = logging.getLogger('prediction_sales_sync')
+logger.setLevel(logging.INFO)
+_fmt = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+_file_handler = RotatingFileHandler(LOG_PATH, maxBytes=512 * 1024, backupCount=2, encoding='utf-8')
+_file_handler.setFormatter(_fmt)
+_stream_handler = logging.StreamHandler(sys.stdout)
+_stream_handler.setFormatter(_fmt)
+logger.addHandler(_file_handler)
+logger.addHandler(_stream_handler)
 
 FIREBIRD_HOST = os.getenv('FIREBIRD_HOST', '192.168.1.32')
 FIREBIRD_PORT = int(os.getenv('FIREBIRD_PORT', '3050'))
@@ -31,6 +47,8 @@ DOC_TABLES = [
     ('CN', 'SL_CN', 'SL_CNDTL'),
     ('DN', 'SL_DN', 'SL_DNDTL'),
 ]
+
+ON_CONFLICT_COLS = 'source_db,doc_type,period,item_code,company_code,company_name'
 
 
 def build_query(hdr_table: str, dtl_table: str) -> str:
@@ -69,7 +87,7 @@ def parse_databases(raw: str) -> list[tuple[str, str]]:
 
 
 def fetch_firebird_records(source_db: str, db_path: str, synced_at: str) -> list[dict]:
-    print(f'Connecting to {source_db} ({FIREBIRD_HOST}:{FIREBIRD_PORT} -> {db_path}) ...')
+    logger.info('Connecting to %s (%s:%s -> %s) ...', source_db, FIREBIRD_HOST, FIREBIRD_PORT, db_path)
     conn = firebirdsql.connect(
         host=FIREBIRD_HOST,
         port=FIREBIRD_PORT,
@@ -83,7 +101,7 @@ def fetch_firebird_records(source_db: str, db_path: str, synced_at: str) -> list
         for doc_type, hdr_table, dtl_table in DOC_TABLES:
             cur.execute(build_query(hdr_table, dtl_table))
             rows = cur.fetchall()
-            print(f'  {source_db} {hdr_table}: {len(rows)} aggregated rows')
+            logger.info('  %s %s: %d aggregated rows', source_db, hdr_table, len(rows))
             for yr, mo, item_code, item_desc, stock_group, comp_code, comp_name, sqty, qty, amt in rows:
                 period = f'{int(yr):04d}-{int(mo):02d}'
                 records.append({
@@ -117,7 +135,7 @@ def supabase_request(method: str, path: str, payload=None, extra_headers=None):
     data = json.dumps(payload).encode('utf-8') if payload is not None else None
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=90) as resp:
             body = resp.read().decode('utf-8')
             return resp.status, body
     except urllib.error.HTTPError as e:
@@ -126,38 +144,65 @@ def supabase_request(method: str, path: str, payload=None, extra_headers=None):
 
 
 def main():
+    logger.info('=== Starting SQL Accounting -> Supabase sync ===')
     if not FIREBIRD_USER or not FIREBIRD_PASSWORD:
-        raise SystemExit('Missing FIREBIRD_USER or FIREBIRD_PASSWORD in firebird-sync/.env')
+        logger.error('Missing FIREBIRD_USER or FIREBIRD_PASSWORD in %s', BASE_DIR / '.env')
+        raise SystemExit(1)
     if not SUPABASE_SERVICE_ROLE_KEY:
-        raise SystemExit('Missing SUPABASE_SERVICE_ROLE_KEY in firebird-sync/.env')
+        logger.error('Missing SUPABASE_SERVICE_ROLE_KEY in %s', BASE_DIR / '.env')
+        raise SystemExit(1)
 
     databases = parse_databases(RAW_DATABASES)
     if not databases:
-        raise SystemExit('No databases configured in FIREBIRD_DATABASES')
+        logger.error('No databases configured in FIREBIRD_DATABASES')
+        raise SystemExit(1)
 
     synced_at = datetime.now(timezone.utc).isoformat()
     all_records: list[dict] = []
+    synced_dbs: list[str] = []
+
     for source_db, db_path in databases:
-        all_records.extend(fetch_firebird_records(source_db, db_path, synced_at))
+        try:
+            db_records = fetch_firebird_records(source_db, db_path, synced_at)
+            all_records.extend(db_records)
+            synced_dbs.append(source_db)
+        except Exception as exc:
+            logger.error('Failed reading Firebird %s: %s', source_db, exc)
+            raise SystemExit(1)
 
-    print(f'\nTotal aggregated rows to sync (since {SYNC_FROM_DATE}): {len(all_records)}')
+    logger.info('Total aggregated rows to upsert (since %s): %d', SYNC_FROM_DATE, len(all_records))
 
-    for source_db, _ in databases:
-        supabase_request('DELETE', f'sales_monthly_records?source_db=eq.{source_db}')
-
+    # 1. Zero-downtime upsert in batches (never leaves the table empty)
     batch_size = 500
+    upsert_path = f'sales_monthly_records?on_conflict={ON_CONFLICT_COLS}'
     for i in range(0, len(all_records), batch_size):
         batch = all_records[i : i + batch_size]
         supabase_request(
             'POST',
-            'sales_monthly_records',
+            upsert_path,
             payload=batch,
+            extra_headers={'Prefer': 'resolution=merge-duplicates,return=minimal'},
+        )
+        logger.info('  Upserted %d/%d', min(i + batch_size, len(all_records)), len(all_records))
+
+    # 2. Clean up stale rows (e.g., cancelled/removed docs) older than this sync timestamp
+    encoded_ts = urllib.parse.quote(synced_at, safe='')
+    for source_db in synced_dbs:
+        encoded_db = urllib.parse.quote(source_db, safe='')
+        supabase_request(
+            'DELETE',
+            f'sales_monthly_records?source_db=eq.{encoded_db}&synced_at=lt.{encoded_ts}',
             extra_headers={'Prefer': 'return=minimal'},
         )
-        print(f'  Uploaded {min(i + batch_size, len(all_records))}/{len(all_records)}')
 
-    print('Sync complete!')
+    logger.info('=== Sync complete! ===')
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as e:
+        logger.exception('Unexpected sync error: %s', e)
+        raise SystemExit(1)
