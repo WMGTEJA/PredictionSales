@@ -89,7 +89,7 @@ export default function SalesInvoicePrediction() {
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <span className="rounded-full border border-[#c79754]/30 bg-[#fbf7f0] px-4 py-1.5 text-xs sm:text-sm font-bold text-[#37150f]">
-              Model: Auto-Best (Damped Holt + Croston-SBA)
+              Model: Auto-Best (Adaptive Multi-Model + YoY Seasonal)
               {forecast.backtest ? ` • ${Math.round(forecast.backtest.accuracy * 100)}% backtest acc.` : ''}
             </span>
           </div>
