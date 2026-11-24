@@ -107,7 +107,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   target="_top"
                   title="Back to WMD Hub"
                   aria-label="Back to WMD Hub"
-                  className="flex items-center group cursor-pointer shrink-0"
+                  className="wmd-hub-logo-btn w-9 h-9 shrink-0"
                 >
                   <img
                     src={logoSrc}
@@ -118,7 +118,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                         setLogoSrc(fallbackSvg);
                       }
                     }}
-                    className="h-9 w-auto max-w-[120px] object-contain rounded-xl transition-transform group-hover:scale-105"
+                    className="w-full h-full object-contain rounded-lg"
                   />
                 </a>
               </div>
@@ -220,7 +220,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 target="_top"
                 title="Back to WMD Hub"
                 aria-label="Back to WMD Hub"
-                className="flex items-center group cursor-pointer shrink-0"
+                className="wmd-hub-logo-btn w-10 h-10 shrink-0"
               >
                 <img
                   src={logoSrc}
@@ -231,7 +231,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       setLogoSrc(fallbackSvg);
                     }
                   }}
-                  className="h-10 w-auto max-w-[160px] object-contain rounded-xl transition-transform group-hover:scale-105"
+                  className="w-full h-full object-contain rounded-lg"
                 />
               </a>
             </div>
