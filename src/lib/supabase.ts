@@ -42,6 +42,7 @@ export const DEFAULT_DATA_SELECTION: DataSelectionConfig = {
 };
 
 export interface SupabaseSalesRow {
+  id?: number;
   source_db: 'ACC-0002' | 'ACC-0006';
   doc_type: DocTypeCode;
   period: string; // YYYY-MM
@@ -111,9 +112,9 @@ export function formatPeriodColumnLabel(period: string, displayedPeriods: string
   return `${SHORT_MONTHS[m - 1]} '${String(y).slice(-2)}`;
 }
 
-/** Lightweight check for the newest synced_at timestamp in Supabase (1 row). */
+/** Lightweight check for the newest synced_at timestamp in Supabase (uses PK index). */
 export async function fetchLatestSyncedAt(): Promise<string | null> {
-  const url = `${SUPABASE_URL}/rest/v1/sales_monthly_records?select=synced_at&order=synced_at.desc&limit=1`;
+  const url = `${SUPABASE_URL}/rest/v1/sales_monthly_records?select=synced_at&order=id.desc&limit=1`;
   const res = await fetch(url, {
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -127,53 +128,36 @@ export async function fetchLatestSyncedAt(): Promise<string | null> {
 
 export async function fetchSupabaseSalesRows(): Promise<SupabaseSalesRow[]> {
   const pageSize = 1000;
-  const baseUrl = `${SUPABASE_URL}/rest/v1/sales_monthly_records?select=source_db,doc_type,period,item_code,item_desc,stock_group,company_code,company_name,qty,doc_qty,amount,synced_at&order=period.asc,id.asc`;
+  const selectCols =
+    'id,source_db,doc_type,period,item_code,item_desc,stock_group,company_code,company_name,qty,doc_qty,amount,synced_at';
 
-  const fetchPage = async (offset: number, withCount = false) => {
-    const res = await fetch(baseUrl, {
+  const fetchKeysetPage = async (afterId: number): Promise<SupabaseSalesRow[]> => {
+    const url = `${SUPABASE_URL}/rest/v1/sales_monthly_records?select=${selectCols}&id=gt.${afterId}&order=id.asc&limit=${pageSize}`;
+    const res = await fetch(url, {
       headers: {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        Range: `${offset}-${offset + pageSize - 1}`,
-        'Range-Unit': 'items',
-        ...(withCount ? { Prefer: 'count=exact' } : {}),
       },
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`Supabase fetch failed (${res.status}): ${text || res.statusText}`);
     }
-    const contentRange = res.headers.get('content-range') || '';
-    const totalMatch = contentRange.match(/\/(\d+)$/);
-    const total = totalMatch ? Number(totalMatch[1]) : null;
-    const rows = (await res.json()) as SupabaseSalesRow[];
-    return { rows, total };
+    return (await res.json()) as SupabaseSalesRow[];
   };
 
-  const first = await fetchPage(0, true);
-  const allRows: SupabaseSalesRow[] = [...first.rows];
+  const allRows: SupabaseSalesRow[] = [];
+  let lastId = 0;
 
-  if (first.total && first.total > pageSize) {
-    const offsets: number[] = [];
-    for (let o = pageSize; o < first.total; o += pageSize) {
-      offsets.push(o);
+  while (true) {
+    const page = await fetchKeysetPage(lastId);
+    if (page.length === 0) break;
+    allRows.push(...page);
+    const tailId = page[page.length - 1]?.id;
+    if (page.length < pageSize || typeof tailId !== 'number' || tailId <= lastId) {
+      break;
     }
-    const concurrency = 10;
-    for (let i = 0; i < offsets.length; i += concurrency) {
-      const chunk = offsets.slice(i, i + concurrency);
-      const results = await Promise.all(chunk.map((o) => fetchPage(o)));
-      for (const r of results) {
-        allRows.push(...r.rows);
-      }
-    }
-  } else if (first.rows.length === pageSize) {
-    let offset = pageSize;
-    while (true) {
-      const next = await fetchPage(offset);
-      allRows.push(...next.rows);
-      if (next.rows.length < pageSize) break;
-      offset += pageSize;
-    }
+    lastId = tailId;
   }
 
   if (allRows.length > 0) {
