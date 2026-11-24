@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import type { ForecastResult, ItemForecast } from './forecast';
 import { METHOD_INFO } from './forecast';
 import { displayCode, periodLabel } from './format';
@@ -20,13 +19,14 @@ export interface CleanPredictionExportOptions {
  * - Recommended Plan (Next 3 Months)
  * Formatted with bold merged headers, clean column widths, and comma-formatted numbers.
  */
-export function exportCleanPredictionToExcel({
+export async function exportCleanPredictionToExcel({
   items,
   totals,
   next3Periods = ['2026-11', '2026-12', '2027-01'],
   sheetTitle = 'SO Prediction',
   filename = 'Sales_Order_Prediction.xlsx',
 }: CleanPredictionExportOptions) {
+  const XLSX = await import('xlsx');
   const [p1, p2, p3] = next3Periods;
   const full1 = periodLabel(p1);
   const full2 = periodLabel(p2);
@@ -229,7 +229,8 @@ export function exportCleanPredictionToExcel({
 export const exportSalesOrderPredictionToExcel = exportCleanPredictionToExcel;
 
 /** Download the complete forecast as an Excel workbook with all history. */
-export function exportForecastToExcel(result: ForecastResult) {
+export async function exportForecastToExcel(result: ForecastResult) {
+  const XLSX = await import('xlsx');
   const next = result.nextPeriod ? periodLabel(result.nextPeriod) : 'Next month';
 
   const rows = result.items.map((it) => {

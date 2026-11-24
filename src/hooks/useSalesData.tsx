@@ -9,11 +9,6 @@ import {
 } from 'react';
 import type { MasterSalesData } from '../lib/types';
 import {
-  fetchLiveMasterData,
-  getCachedMasterData,
-  STORAGE_KEY_LAST_SYNC,
-} from '../lib/sheets';
-import {
   buildMasterDataFromSupabaseRows,
   DEFAULT_DATA_SELECTION,
   extractFilterOptions,
@@ -23,7 +18,42 @@ import {
   type DataSelectionConfig,
   type SupabaseSalesRow,
 } from '../lib/supabase';
-import { INITIAL_SALES_DATA } from '../data/initialSalesData';
+
+const STORAGE_KEY_LAST_SYNC = 'prediction-sales:last-synced-at-v3';
+
+const EMPTY_MASTER_DATA: MasterSalesData = {
+  so: {
+    rows: [],
+    companies: [],
+    items: [],
+    monthlyReports: [],
+    totalQty: 0,
+    monthlyTotals: {},
+  },
+  si: {
+    rows: [],
+    companies: [],
+    items: [],
+    monthlyReports: [],
+    totalQty: 0,
+    monthlyTotals: {},
+  },
+  fulfillment: {
+    totalSoQty: 0,
+    totalSiQty: 0,
+    overallFulfillmentPct: 0,
+    totalVariance: 0,
+    monthly: [],
+    items: [],
+    stats: {
+      totalItems: 0,
+      fullyFulfilled: 0,
+      partiallyFulfilled: 0,
+      lowFulfilled: 0,
+    },
+  },
+  syncedAt: '',
+};
 
 interface SalesDataContextType {
   data: MasterSalesData;
@@ -77,7 +107,7 @@ function loadSelection(): DataSelectionConfig {
 const SalesDataContext = createContext<SalesDataContextType | null>(null);
 
 export function SalesDataProvider({ children }: { children: ReactNode }) {
-  const [fallbackData, setFallbackData] = useState<MasterSalesData>(INITIAL_SALES_DATA);
+  const [fallbackData, setFallbackData] = useState<MasterSalesData>(EMPTY_MASTER_DATA);
   const [supabaseRows, setSupabaseRows] = useState<SupabaseSalesRow[] | null>(null);
   const [selection, setSelectionState] = useState<DataSelectionConfig>(loadSelection);
   const [loading] = useState(false);
@@ -85,9 +115,10 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
     return typeof window !== 'undefined'
-      ? localStorage.getItem(STORAGE_KEY_LAST_SYNC) || INITIAL_SALES_DATA.syncedAt
-      : INITIAL_SALES_DATA.syncedAt;
+      ? localStorage.getItem(STORAGE_KEY_LAST_SYNC)
+      : null;
   });
+  const inFlightSyncRef = useRef<Promise<boolean> | null>(null);
 
   const [soManualAdjustments, setSoManualAdjustments] = useState<Record<string, number>>(() =>
     loadManual(SO_MANUAL_KEY),
@@ -175,32 +206,41 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
   };
 
   const syncNow = async (): Promise<boolean> => {
-    setSyncing(true);
-    setError(null);
-    try {
-      const rows = await fetchSupabaseSalesRows();
-      if (rows.length > 0) {
-        setSupabaseRows(rows);
-        const latest = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
-        const syncedTime = latest || new Date().toISOString();
-        setLastSyncedAt(syncedTime);
-        try {
-          localStorage.setItem(STORAGE_KEY_LAST_SYNC, syncedTime);
-        } catch {}
-        return true;
-      }
+    if (inFlightSyncRef.current) return inFlightSyncRef.current;
 
-      const live = await fetchLiveMasterData();
-      setFallbackData(live);
-      setLastSyncedAt(live.syncedAt);
-      return true;
-    } catch (e) {
-      console.error('Failed to sync live data:', e);
-      setError(e instanceof Error ? e.message : String(e));
-      return false;
-    } finally {
-      setSyncing(false);
-    }
+    const run = (async () => {
+      setSyncing(true);
+      setError(null);
+      try {
+        const rows = await fetchSupabaseSalesRows();
+        if (rows.length > 0) {
+          setSupabaseRows(rows);
+          const latest = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
+          const syncedTime = latest || new Date().toISOString();
+          setLastSyncedAt(syncedTime);
+          try {
+            localStorage.setItem(STORAGE_KEY_LAST_SYNC, syncedTime);
+          } catch {}
+          return true;
+        }
+
+        const { fetchLiveMasterData } = await import('../lib/sheets');
+        const live = await fetchLiveMasterData();
+        setFallbackData(live);
+        setLastSyncedAt(live.syncedAt);
+        return true;
+      } catch (e) {
+        console.error('Failed to sync live data:', e);
+        setError(e instanceof Error ? e.message : String(e));
+        return false;
+      } finally {
+        setSyncing(false);
+        inFlightSyncRef.current = null;
+      }
+    })();
+
+    inFlightSyncRef.current = run;
+    return run;
   };
 
   const lastSyncedAtRef = useRef<string | null>(lastSyncedAt);
@@ -212,31 +252,55 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let lastCheckedMs = 0;
 
-    const pullFreshFromSupabase = async () => {
+    const pullFreshFromSupabase = async (hasExistingData: boolean) => {
       if (!mounted) return;
-      setSyncing(true);
-      try {
-        const rows = await fetchSupabaseSalesRows();
-        if (mounted && rows.length > 0) {
-          setSupabaseRows(rows);
-          const latest = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
-          const syncedTime = latest || new Date().toISOString();
-          setLastSyncedAt(syncedTime);
-          try {
-            localStorage.setItem(STORAGE_KEY_LAST_SYNC, syncedTime);
-          } catch {}
-        } else if (mounted) {
-          const live = await fetchLiveMasterData();
-          if (mounted) {
-            setFallbackData(live);
-            setLastSyncedAt(live.syncedAt);
-          }
-        }
-      } catch (e) {
-        console.warn('Automatic background live sync failed (using local data):', e);
-      } finally {
-        if (mounted) setSyncing(false);
+      if (inFlightSyncRef.current) {
+        await inFlightSyncRef.current;
+        return;
       }
+      setSyncing(true);
+      const run = (async () => {
+        try {
+          const rows = await fetchSupabaseSalesRows();
+          if (mounted && rows.length > 0) {
+            setSupabaseRows(rows);
+            const latest = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
+            const syncedTime = latest || new Date().toISOString();
+            setLastSyncedAt(syncedTime);
+            try {
+              localStorage.setItem(STORAGE_KEY_LAST_SYNC, syncedTime);
+            } catch {}
+            return true;
+          } else if (mounted) {
+            const { fetchLiveMasterData } = await import('../lib/sheets');
+            const live = await fetchLiveMasterData();
+            if (mounted) {
+              setFallbackData(live);
+              setLastSyncedAt(live.syncedAt);
+            }
+            return true;
+          }
+          return false;
+        } catch (e) {
+          console.warn('Automatic background live sync failed (using local data):', e);
+          if (mounted && !hasExistingData) {
+            try {
+              const { getCachedMasterData } = await import('../lib/sheets');
+              const cached = await getCachedMasterData();
+              if (mounted && cached) {
+                setFallbackData(cached);
+                if (cached.syncedAt) setLastSyncedAt(cached.syncedAt);
+              }
+            } catch {}
+          }
+          return false;
+        } finally {
+          if (mounted) setSyncing(false);
+          inFlightSyncRef.current = null;
+        }
+      })();
+      inFlightSyncRef.current = run;
+      await run;
     };
 
     const checkForUpdates = async () => {
@@ -246,7 +310,7 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
       try {
         const remoteSyncedAt = await fetchLatestSyncedAt();
         if (remoteSyncedAt && (!lastSyncedAtRef.current || remoteSyncedAt > lastSyncedAtRef.current)) {
-          await pullFreshFromSupabase();
+          await pullFreshFromSupabase(true);
         }
       } catch {
         // Silent background check failure
@@ -254,14 +318,17 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
     };
 
     (async () => {
+      let hasWarmCache = false;
+      let cachedSyncedAt = '';
       try {
         const cachedSb = await getCachedSupabaseRows();
         if (mounted && cachedSb && cachedSb.length > 0) {
           setSupabaseRows(cachedSb);
-        } else {
-          const cached = await getCachedMasterData();
-          if (mounted && cached) {
-            setFallbackData(cached);
+          hasWarmCache = true;
+          cachedSyncedAt = cachedSb.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
+          if (cachedSyncedAt) {
+            setLastSyncedAt(cachedSyncedAt);
+            lastSyncedAtRef.current = cachedSyncedAt;
           }
         }
       } catch (e) {
@@ -269,7 +336,19 @@ export function SalesDataProvider({ children }: { children: ReactNode }) {
       }
 
       lastCheckedMs = Date.now();
-      await pullFreshFromSupabase();
+      if (hasWarmCache) {
+        // Lightweight 1-row PK check: skip full download if cache is already up to date
+        try {
+          const remoteSyncedAt = await fetchLatestSyncedAt();
+          if (remoteSyncedAt && (!cachedSyncedAt || remoteSyncedAt > cachedSyncedAt)) {
+            await pullFreshFromSupabase(true);
+          }
+        } catch {
+          // Keep serving warm cache silently
+        }
+      } else {
+        await pullFreshFromSupabase(false);
+      }
     })();
 
     // Auto-check Supabase every 5 minutes and when returning to the tab

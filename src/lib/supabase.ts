@@ -16,6 +16,16 @@ export const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xeGt5d2Zta2FrZGtoZHdpdmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MTQ1MzUsImV4cCI6MjExMDM5MDUzNX0.3vmwCjUQrqAxPcq2xpOC-P1hzEGGrO52RZ2AP-QzaGM';
 
 export type SourceDbFilter = 'ALL' | 'ACC-0002' | 'ACC-0006';
+
+export const SOURCE_DB_LABELS: Record<'ACC-0002' | 'ACC-0006', string> = {
+  'ACC-0002': 'WMG',
+  'ACC-0006': 'WMD',
+};
+
+export function getSourceDbLabel(sourceDb: SourceDbFilter): string {
+  if (sourceDb === 'ALL') return 'All DBs';
+  return SOURCE_DB_LABELS[sourceDb] ?? sourceDb;
+}
 export type SOTableChoice = 'SO' | 'DO';
 export type SITableChoice = 'IV' | 'CS' | 'CN' | 'DN';
 export type QtyFieldChoice = 'sqty' | 'qty';
@@ -43,7 +53,7 @@ export const DEFAULT_DATA_SELECTION: DataSelectionConfig = {
 
 export interface SupabaseSalesRow {
   id?: number;
-  source_db: 'ACC-0002' | 'ACC-0006';
+  source_db: 'ACC-0002' | 'ACC-0006' | 'WMG' | 'WMD';
   doc_type: DocTypeCode;
   period: string; // YYYY-MM
   item_code: string;
@@ -128,17 +138,18 @@ export async function fetchLatestSyncedAt(): Promise<string | null> {
 
 export async function fetchSupabaseSalesRows(): Promise<SupabaseSalesRow[]> {
   const pageSize = 1000;
+  const maxWorkers = 6;
   const selectCols =
     'id,source_db,doc_type,period,item_code,item_desc,stock_group,company_code,company_name,qty,doc_qty,amount,synced_at';
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+  };
 
-  const fetchKeysetPage = async (afterId: number): Promise<SupabaseSalesRow[]> => {
-    const url = `${SUPABASE_URL}/rest/v1/sales_monthly_records?select=${selectCols}&id=gt.${afterId}&order=id.asc&limit=${pageSize}`;
-    const res = await fetch(url, {
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    });
+  const fetchKeysetPage = async (afterId: number, maxInclusiveId?: number): Promise<SupabaseSalesRow[]> => {
+    const upperBound = typeof maxInclusiveId === 'number' ? `&id=lte.${maxInclusiveId}` : '';
+    const url = `${SUPABASE_URL}/rest/v1/sales_monthly_records?select=${selectCols}&id=gt.${afterId}${upperBound}&order=id.asc&limit=${pageSize}`;
+    const res = await fetch(url, { headers });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`Supabase fetch failed (${res.status}): ${text || res.statusText}`);
@@ -146,18 +157,76 @@ export async function fetchSupabaseSalesRows(): Promise<SupabaseSalesRow[]> {
     return (await res.json()) as SupabaseSalesRow[];
   };
 
-  const allRows: SupabaseSalesRow[] = [];
-  let lastId = 0;
-
-  while (true) {
-    const page = await fetchKeysetPage(lastId);
-    if (page.length === 0) break;
-    allRows.push(...page);
-    const tailId = page[page.length - 1]?.id;
-    if (page.length < pageSize || typeof tailId !== 'number' || tailId <= lastId) {
-      break;
+  const fetchRange = async (startInclusive: number, endInclusive: number): Promise<SupabaseSalesRow[]> => {
+    const bucket: SupabaseSalesRow[] = [];
+    let cursor = startInclusive - 1;
+    while (true) {
+      const page = await fetchKeysetPage(cursor, endInclusive);
+      if (page.length === 0) break;
+      bucket.push(...page);
+      const tailId = page[page.length - 1]?.id;
+      if (page.length < pageSize || typeof tailId !== 'number' || tailId <= cursor || tailId >= endInclusive) {
+        break;
+      }
+      cursor = tailId;
     }
-    lastId = tailId;
+    return bucket;
+  };
+
+  // Fast O(1) primary-key index lookups for min/max ID so we can shard keyset pages in parallel
+  const [minRes, maxRes] = await Promise.all([
+    fetch(`${SUPABASE_URL}/rest/v1/sales_monthly_records?select=id&order=id.asc&limit=1`, { headers }),
+    fetch(`${SUPABASE_URL}/rest/v1/sales_monthly_records?select=id&order=id.desc&limit=1`, { headers }),
+  ]);
+
+  let allRows: SupabaseSalesRow[] = [];
+
+  if (minRes.ok && maxRes.ok) {
+    const [minRows, maxRows] = (await Promise.all([minRes.json(), maxRes.json()])) as [
+      Array<{ id?: number }>,
+      Array<{ id?: number }>,
+    ];
+    const minId = minRows[0]?.id;
+    const maxId = maxRows[0]?.id;
+
+    if (minRows.length === 0 || maxRows.length === 0) {
+      return [];
+    }
+
+    if (typeof minId === 'number' && typeof maxId === 'number' && maxId >= minId) {
+      const span = maxId - minId + 1;
+      const workerCount = span <= pageSize ? 1 : Math.min(maxWorkers, Math.ceil(span / pageSize));
+      const step = Math.ceil(span / workerCount);
+      const ranges: Array<[number, number]> = [];
+      for (let w = 0; w < workerCount; w++) {
+        const start = minId + w * step;
+        if (start > maxId) break;
+        const end = Math.min(maxId, start + step - 1);
+        ranges.push([start, end]);
+      }
+
+      const buckets = await Promise.all(ranges.map(([start, end]) => fetchRange(start, end)));
+      for (const bucket of buckets) {
+        for (let i = 0; i < bucket.length; i++) {
+          allRows.push(bucket[i]);
+        }
+      }
+    }
+  }
+
+  // Fallback to sequential keyset pagination if bounds lookup couldn't determine IDs
+  if (allRows.length === 0) {
+    let lastId = 0;
+    while (true) {
+      const page = await fetchKeysetPage(lastId);
+      if (page.length === 0) break;
+      allRows.push(...page);
+      const tailId = page[page.length - 1]?.id;
+      if (page.length < pageSize || typeof tailId !== 'number' || tailId <= lastId) {
+        break;
+      }
+      lastId = tailId;
+    }
   }
 
   if (allRows.length > 0) {
@@ -209,7 +278,10 @@ export function buildMasterDataFromSupabaseRows(
   const effectiveToPeriod = config.toPeriod || getAutoMaxPeriod();
 
   const rows = allRows.filter((r) => {
-    if (config.sourceDb !== 'ALL' && r.source_db !== config.sourceDb) return false;
+    if (config.sourceDb !== 'ALL') {
+      const alias = SOURCE_DB_LABELS[config.sourceDb];
+      if (r.source_db !== config.sourceDb && r.source_db !== alias) return false;
+    }
     if (config.fromPeriod && r.period < config.fromPeriod) return false;
     if (effectiveToPeriod && r.period > effectiveToPeriod) return false;
     if (config.stockGroup !== 'ALL' && (r.stock_group || '').trim() !== config.stockGroup) return false;

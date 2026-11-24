@@ -16,6 +16,7 @@ import { useSalesData } from '../hooks/useSalesData';
 import {
   DEFAULT_DATA_SELECTION,
   formatPeriodShort,
+  getSourceDbLabel,
   type QtyFieldChoice,
   type SITableChoice,
   type SOTableChoice,
@@ -190,7 +191,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               >
                 <SlidersHorizontal className="size-4" />
                 <span>
-                  {selection.sourceDb === 'ALL' ? 'All DBs' : selection.sourceDb} • {selection.qtyField.toUpperCase()}
+                  {getSourceDbLabel(selection.sourceDb)} • {selection.qtyField.toUpperCase()}
                 </span>
               </button>
 
@@ -251,9 +252,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                   onChange={(e) => setSelection((p) => ({ ...p, sourceDb: e.target.value as SourceDbFilter }))}
                   className="rounded-lg border border-[#c79754]/30 bg-[#37150f] px-2.5 py-1 font-bold text-[#f5d275]"
                 >
-                  <option value="ALL">Combined (ACC-0002 + ACC-0006)</option>
-                  <option value="ACC-0002">ACC-0002 only</option>
-                  <option value="ACC-0006">ACC-0006 only</option>
+                  <option value="ALL">Combined (WMG + WMD)</option>
+                  <option value="ACC-0002">WMG only</option>
+                  <option value="ACC-0006">WMD only</option>
                 </select>
               </div>
 

@@ -7,7 +7,7 @@ export const METHOD_INFO: Record<ForecastMethod, { label: string; description: s
   auto: {
     label: 'Auto-Best Adaptive Model',
     description:
-      'Automatically backtests Damped-Trend Exponential Smoothing, Croston-SBA (for intermittent SKUs), and Weighted Momentum per item, picking the lowest-error forecast.',
+      'Automatically backtests Simple Exponential Smoothing, Damped-Trend Holt, Robust Median, Weighted Momentum, Croston-SBA (for intermittent SKUs), and Year-over-Year Seasonality (when 13+ months exist) per item, blending the lowest-error models.',
   },
   ensemble: {
     label: 'Best-Fit Adaptive Ensemble',
@@ -350,18 +350,51 @@ function forecastANN(y: number[]): number {
   return Math.max(0, boundedPred * mean);
 }
 
-/** Damped-Trend Holt's Exponential Smoothing (Gardner-McKenzie). */
+/** Simple Exponential Smoothing (SES) — ideal for stable or noisy demand without a strong trend. */
+function forecastSES(y: number[], alpha = 0.30): number {
+  const n = y.length;
+  if (n === 0) return 0;
+  if (n === 1) return Math.max(0, y[0]);
+
+  let level = y[0];
+  for (let i = 1; i < n; i++) {
+    level = alpha * y[i] + (1 - alpha) * level;
+  }
+  return Math.max(0, level);
+}
+
+/** Robust Median / Trimmed Baseline — resists sudden one-off bulk spikes and troughs. */
+function forecastRobustMedian(y: number[]): number {
+  const n = y.length;
+  if (n === 0) return 0;
+  if (n === 1) return Math.max(0, y[0]);
+
+  const medianOf = (arr: number[]) => {
+    const s = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid];
+  };
+
+  const recent6 = y.slice(-6);
+  const medRecent = medianOf(recent6);
+  const medAll = medianOf(y);
+  return Math.max(0, 0.7 * medRecent + 0.3 * medAll);
+}
+
+/** Damped-Trend Holt's Exponential Smoothing (Gardner-McKenzie) with robust initialization. */
 function forecastDampedHolt(y: number[]): number {
   const n = y.length;
   if (n === 0) return 0;
   if (n === 1) return Math.max(0, y[0]);
 
-  const alpha = 0.45;
+  const alpha = 0.35;
   const beta = 0.15;
-  const phi = 0.85;
+  const phi = 0.80;
 
-  let level = y[0];
-  let trend = y[1] - y[0];
+  let level = (y[0] + y[1]) / 2;
+  const rawSlope = y[1] - y[0];
+  const maxInitTrend = Math.max(level * 0.5, 1);
+  let trend = Math.max(-maxInitTrend, Math.min(maxInitTrend, rawSlope * 0.5));
 
   for (let i = 1; i < n; i++) {
     const prevLevel = level;
@@ -371,6 +404,34 @@ function forecastDampedHolt(y: number[]): number {
   }
 
   return Math.max(0, level + phi * trend);
+}
+
+/**
+ * Year-over-Year Seasonal Adjusted Forecast (requires >= 13 months).
+ * Uses the same calendar month last year (and 2 years ago if available),
+ * scaled by the item's recent 3-month YoY growth rate.
+ */
+function forecastSeasonalYoY(y: number[]): number {
+  const n = y.length;
+  if (n < 13) return forecastSES(y);
+
+  const sameLastYr = y[n - 12];
+  const seasonalBase = n >= 24 ? 0.65 * sameLastYr + 0.35 * y[n - 24] : sameLastYr;
+
+  // Recent 3-month YoY growth factor (clamped to avoid extreme distortion)
+  const recentWin = Math.min(3, n - 12);
+  let recentSum = 0;
+  let prevYrSum = 0;
+  for (let i = 1; i <= recentWin; i++) {
+    recentSum += y[n - i];
+    prevYrSum += y[n - 12 - i];
+  }
+  const growthFactor =
+    prevYrSum > 0 ? Math.max(0.5, Math.min(1.8, recentSum / prevYrSum)) : 1;
+
+  const seasonalPred = seasonalBase * growthFactor;
+  const recentLevel = forecastSES(y, 0.3);
+  return Math.max(0, 0.75 * seasonalPred + 0.25 * recentLevel);
 }
 
 /** Croston / Syntetos-Boylan Approximation (SBA) for intermittent demand. */
@@ -424,52 +485,175 @@ function forecastWeightedMomentum(y: number[]): number {
   return Math.max(0, blended);
 }
 
-/**
- * Per-SKU Auto-Best Model:
- * Evaluates candidate models via rolling 1-step backtesting on recent months
- * and selects the lowest-error forecast for this item's demand pattern.
- */
-function forecastAutoBest(y: number[]): number {
+type ForecastCandidate = {
+  fn: (series: number[]) => number;
+  minHistory: number;
+};
+
+type SelectedModelBlend = Array<{ fn: (series: number[]) => number; weight: number }>;
+
+/** Adaptive Ensemble candidate (smart trend + 3-mo MA + 4-mo WMA + outlier dampener + intermittent decay). */
+function forecastEnsembleCandidate(y: number[]): number {
   const n = y.length;
   if (n === 0) return 0;
   if (n === 1) return Math.max(0, y[0]);
+  const last = y[n - 1];
+
+  if (n >= 3 && y[n - 1] === 0 && y[n - 2] === 0) return 0;
+
+  const zeroCount = y.filter((v) => v === 0).length;
+  if (zeroCount / n >= 0.4 && last === 0) {
+    const nonZeros = y.filter((v) => v > 0);
+    const avgNZ = nonZeros.reduce((a, b) => a + b, 0) / nonZeros.length;
+    const prob = (n - zeroCount) / n;
+    return Math.max(0, prob * 0.4 * avgNZ);
+  }
+
+  const mean = y.reduce((s, v) => s + v, 0) / n;
+  const xMean = (n - 1) / 2;
+  let num = 0;
+  let den = 0;
+  y.forEach((v, x) => {
+    num += (x - xMean) * (v - mean);
+    den += (x - xMean) ** 2;
+  });
+  const slope = den === 0 ? 0 : num / den;
+  const weighted =
+    y.reduce((s, v, i) => s + v * (i + 1), 0) / y.reduce((s, _v, i) => s + (i + 1), 0);
+
+  const trendValue = Math.max(0, mean + slope * (n - xMean));
+  const trendWeight = n >= 3 ? 0.4 : 0.25;
+  const smartValue = (1 - trendWeight) * weighted + trendWeight * trendValue;
+
+  const s3 = y.slice(-3);
+  const ma3 = s3.reduce((a, b) => a + b, 0) / s3.length;
+
+  const s4 = y.slice(-4);
+  const weights = [1, 2, 3, 4].slice(4 - s4.length);
+  const sumW = weights.reduce((a, b) => a + b, 0);
+  const wma4 = s4.reduce((acc, v, i) => acc + v * weights[i], 0) / sumW;
+
+  let blended = 0.5 * smartValue + 0.3 * ma3 + 0.2 * wma4;
+
+  if (n >= 4) {
+    const prev3 = y.slice(-4, -1);
+    const med3 = [...prev3].sort((a, b) => a - b)[1];
+    if (med3 > 0 && last > 2.3 * med3) {
+      blended = 0.65 * blended + 0.35 * med3;
+    }
+  }
+  return Math.max(0, blended);
+}
+
+/**
+ * Selects the best 1–2 forecasting models for an item's real historical series
+ * using recency-weighted rolling 1-step backtesting across up to 4 recent months.
+ */
+function selectAutoBestModels(y: number[]): SelectedModelBlend | null {
+  const n = y.length;
+  if (n === 0) return null;
+  if (n === 1) return [{ fn: (s) => Math.max(0, s[s.length - 1] ?? 0), weight: 1 }];
 
   // Dormant item: 0 sales in last 2 consecutive months
   if (n >= 3 && y[n - 1] === 0 && y[n - 2] === 0) {
-    return 0;
+    return [{ fn: () => 0, weight: 1 }];
   }
 
   if (n < 4) {
-    return forecastWeightedMomentum(y);
+    return [{ fn: forecastWeightedMomentum, weight: 1 }];
   }
 
   const zeroRatio = y.filter((v) => v === 0).length / n;
-  const candidates: Array<(series: number[]) => number> = [
-    forecastDampedHolt,
-    forecastWeightedMomentum,
+
+  // Intermittent SKU that had zero sales last month: use specialized intermittent models only
+  // so smooth/momentum models don't over-predict sporadic items.
+  if (zeroRatio >= 0.4 && y[n - 1] === 0) {
+    return [{ fn: forecastEnsembleCandidate, weight: 1 }];
+  }
+
+  const candidates: ForecastCandidate[] = [
+    { fn: forecastEnsembleCandidate, minHistory: 2 },
+    { fn: forecastSES, minHistory: 2 },
+    { fn: forecastDampedHolt, minHistory: 2 },
+    { fn: forecastRobustMedian, minHistory: 2 },
+    { fn: forecastWeightedMomentum, minHistory: 2 },
   ];
   if (zeroRatio >= 0.25) {
-    candidates.push(forecastCrostonSBA);
+    candidates.push({ fn: forecastCrostonSBA, minHistory: 2 });
+  }
+  if (n >= 15) {
+    candidates.push({ fn: forecastSeasonalYoY, minHistory: 13 });
   }
 
-  const evalCount = Math.min(3, n - 2);
-  let bestFn = candidates[0];
-  let bestMae = Infinity;
+  const evalCount = Math.min(6, n - 2);
+  const scored: Array<{ fn: (series: number[]) => number; wMae: number }> = [];
 
-  for (const fn of candidates) {
+  for (const cand of candidates) {
     let errSum = 0;
-    for (let k = n - evalCount; k < n; k++) {
-      const pred = fn(y.slice(0, k));
-      errSum += Math.abs(y[k] - pred);
+    let weightSum = 0;
+    const startIdx = n - evalCount;
+    for (let k = startIdx; k < n; k++) {
+      if (k < cand.minHistory) continue;
+      const recencyWeight = k - startIdx + 1;
+      const pred = cand.fn(y.slice(0, k));
+      errSum += recencyWeight * Math.abs(y[k] - pred);
+      weightSum += recencyWeight;
     }
-    const mae = errSum / evalCount;
-    if (mae < bestMae) {
-      bestMae = mae;
-      bestFn = fn;
+    if (weightSum > 0) {
+      scored.push({ fn: cand.fn, wMae: errSum / weightSum });
     }
   }
 
-  return Math.max(0, bestFn(y));
+  if (scored.length === 0) {
+    return [{ fn: forecastWeightedMomentum, weight: 1 }];
+  }
+
+  // Smooth inverse-squared-error ensemble across all eligible candidates.
+  // A gentle floor prevents overfitting to a tiny 3–6 month validation window while
+  // still giving dominant weight to whichever model clearly matches the item's pattern.
+  const meanY = y.reduce((s, v) => s + v, 0) / n;
+  const floor = Math.max(1, 0.05 * meanY);
+  const rawWeights = scored.map((s) => 1 / (s.wMae + floor) ** 2);
+  const totalW = rawWeights.reduce((a, b) => a + b, 0);
+
+  return scored.map((s, idx) => ({
+    fn: s.fn,
+    weight: rawWeights[idx] / totalW,
+  }));
+}
+
+function evalModelBlend(blend: SelectedModelBlend | null, series: number[]): number {
+  if (!blend || blend.length === 0) return 0;
+  let sum = 0;
+  for (const { fn, weight } of blend) {
+    sum += weight * fn(series);
+  }
+  return Math.max(0, sum);
+}
+
+/**
+ * Per-SKU Auto-Best Model:
+ * Evaluates candidate models via recency-weighted rolling 1-step backtesting
+ * and blends the top 1–2 lowest-error forecasts for this item's demand pattern.
+ */
+function forecastAutoBest(y: number[]): number {
+  const blend = selectAutoBestModels(y);
+  return evalModelBlend(blend, y);
+}
+
+/** Expand a continuous list of YYYY-MM periods from start to end (inclusive). */
+function expandPeriodRange(start: string, end: string): string[] {
+  if (!start || !end || start > end) return [];
+  const result: string[] = [];
+  let cur = start;
+  let guard = 0;
+  while (cur <= end && guard < 240) {
+    result.push(cur);
+    if (cur === end) break;
+    cur = nextMonth(cur);
+    guard++;
+  }
+  return result;
 }
 
 /** Build forecasts for every item across all saved reports. */
@@ -479,7 +663,15 @@ export function buildForecast(
   manualAdjustments: Record<string, number> = {},
 ): ForecastResult {
   const sorted = [...reports].sort((a, b) => a.period.localeCompare(b.period));
-  const periods = sorted.map((r) => r.period);
+  // Ensure a continuous monthly timeline (fills any missing middle months with 0)
+  // so seasonality (lag-12) and dormancy checks are always aligned to real calendar months.
+  const periods =
+    sorted.length >= 2
+      ? expandPeriodRange(sorted[0].period, sorted[sorted.length - 1].period)
+      : sorted.map((r) => r.period);
+  const periodToIdx = new Map<string, number>();
+  periods.forEach((p, idx) => periodToIdx.set(p, idx));
+
   const nextPeriod = periods.length ? nextMonth(periods[periods.length - 1]) : null;
   const p2 = nextPeriod ? nextMonth(nextPeriod) : null;
   const p3 = p2 ? nextMonth(p2) : null;
@@ -494,7 +686,9 @@ export function buildForecast(
     string,
     { code: string; desc?: string; stockGroup?: string; qty: number[]; amount: number[] }
   >();
-  sorted.forEach((report, p) => {
+  for (const report of sorted) {
+    const p = periodToIdx.get(report.period);
+    if (p === undefined) continue;
     for (const it of report.items) {
       const key = it.code.trim().toUpperCase();
       let entry = byItem.get(key);
@@ -514,13 +708,17 @@ export function buildForecast(
       entry.qty[p] += it.qty;
       entry.amount[p] += it.amount;
     }
-  });
+  }
 
   const items: ItemForecast[] = [];
   for (const [key, e] of byItem) {
     const lastQty = e.qty[e.qty.length - 1] ?? 0;
 
     // 1. Month 1 (Nov) AI Forecast
+    const firstActive = e.qty.findIndex((v) => v > 0);
+    const activeSeries = firstActive >= 0 ? e.qty.slice(firstActive) : [];
+    const autoBlend = method === 'auto' ? selectAutoBestModels(activeSeries) : null;
+
     const { value: novVal, spread, relativeSlope } = forecastSeries(e.qty, method);
     const rawForecastQty = Math.max(0, Math.round(novVal));
 
@@ -529,15 +727,25 @@ export function buildForecast(
     const novAi = hasManual ? Math.max(0, Math.round(manualAdjustments[key])) : rawForecastQty;
     const isManual = hasManual;
 
-    // 2. Month 2 (Dec) AI Forecast (step-ahead projection with Nov)
-    const seriesWithNov = [...e.qty, novAi];
-    const { value: decVal } = forecastSeries(seriesWithNov, method);
-    const decAi = Math.max(0, Math.round(decVal));
+    // 2. Month 2 (Dec) & Month 3 (Jan) AI Forecasts
+    // For 'auto', reuse the winning model blend chosen on REAL history so we never
+    // backtest against synthetic predictions or manual overrides.
+    let decAi: number;
+    let janAi: number;
+    if (method === 'auto') {
+      const decVal = evalModelBlend(autoBlend, [...activeSeries, novAi]);
+      decAi = Math.max(0, Math.round(decVal));
+      const janVal = evalModelBlend(autoBlend, [...activeSeries, novAi, decAi]);
+      janAi = Math.max(0, Math.round(janVal));
+    } else {
+      const seriesWithNov = [...e.qty, novAi];
+      const { value: decVal } = forecastSeries(seriesWithNov, method);
+      decAi = Math.max(0, Math.round(decVal));
 
-    // 3. Month 3 (Jan) AI Forecast (step-ahead projection with Nov + Dec)
-    const seriesWithDec = [...seriesWithNov, decAi];
-    const { value: janVal } = forecastSeries(seriesWithDec, method);
-    const janAi = Math.max(0, Math.round(janVal));
+      const seriesWithDec = [...seriesWithNov, decAi];
+      const { value: janVal } = forecastSeries(seriesWithDec, method);
+      janAi = Math.max(0, Math.round(janVal));
+    }
 
     // 4. Director Target (+10% MoM increase based on Oct Actual)
     // Nov Target: based on Oct Actual + 10%. If Oct was 0, fall back to Nov AI + 10%

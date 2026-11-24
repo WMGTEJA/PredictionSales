@@ -139,6 +139,37 @@ describe('forecast', () => {
     expect(result.items.find((i) => i.key === 'OLD')!.trend).toBe('stopped');
     expect(result.backtest?.period).toBe('2026-09');
   });
+
+  it('fills missing calendar months with zeros so timelines stay aligned', () => {
+    const mk = (period: string, qty: number): StoredReport => ({
+      id: period,
+      period,
+      fileName: '',
+      filePath: null,
+      grandTotal: null,
+      itemCount: 1,
+      totalQty: qty,
+      totalAmount: qty * 10,
+      uploadedAt: '',
+      items: [{ code: 'A', qty, amount: qty * 10 }],
+    });
+    // Gap at 2026-08
+    const result = buildForecast([mk('2026-07', 100), mk('2026-09', 120)], 'auto');
+    expect(result.periods).toEqual(['2026-07', '2026-08', '2026-09']);
+    const item = result.items.find((i) => i.key === 'A')!;
+    expect(item.qtyHistory).toEqual([100, 0, 120]);
+  });
+
+  it('captures Year-over-Year seasonal peaks when 15+ months of history exist', () => {
+    // 22 months of repeating annual seasonality (higher in Q1 & Nov/Dec, lower mid-year)
+    const seasonal = [
+      200, 220, 180, 120, 90, 80, 85, 110, 140, 160, 420, 310, // Year 1 (Jan..Dec)
+      210, 230, 190, 125, 95, 82, 88, 115, 145, 165,           // Year 2 (Jan..Oct) -> next is Nov!
+    ];
+    const pred = forecastSeries(seasonal, 'auto').value;
+    // Should clearly anticipate the Nov seasonal surge (well above Oct's 165)
+    expect(pred).toBeGreaterThan(250);
+  });
 });
 
 describe('google sheet parser & november forecast', () => {
