@@ -1,4 +1,4 @@
-export type SsoUserRole = 'account_manager' | 'manager' | 'admin';
+export type SsoUserRole = 'account_manager' | 'manager' | 'admin' | 'staff';
 
 export interface SsoUser {
   id: string;
@@ -28,7 +28,7 @@ export const STORAGE_KEY_SESSION = 'wm_portal_active_user_v1';
 export const STORAGE_KEY_PORTAL_URL = 'wm_portal_mainapp_url_v1';
 export const DEFAULT_MAIN_APP_URL = 'https://tejawmd.github.io/MainApp/';
 
-const VALID_ROLES: SsoUserRole[] = ['account_manager', 'manager', 'admin'];
+const VALID_ROLES: SsoUserRole[] = ['account_manager', 'manager', 'admin', 'staff'];
 const MAX_TOKEN_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function isValidHttpUrl(value: unknown): value is string {
@@ -68,7 +68,7 @@ function buildUserFromPayload(payload: SsoPayload): SsoUser | null {
 
   const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : '';
   const id = typeof payload.id === 'string' ? payload.id.trim() : '';
-  const role = payload.role as SsoUserRole;
+  const role = (typeof payload.role === 'string' ? payload.role.trim().toLowerCase() : '') as SsoUserRole;
 
   if (!email || !id || !VALID_ROLES.includes(role)) {
     return null;
@@ -85,7 +85,13 @@ function buildUserFromPayload(payload: SsoPayload): SsoUser | null {
   const fallbackName = email.split('@')[0] || 'User';
   const name = (typeof payload.name === 'string' && payload.name.trim()) || fallbackName;
   const defaultRoleLabel =
-    role === 'admin' ? 'Admin' : role === 'manager' ? 'Manager' : 'Account Manager';
+    role === 'admin'
+      ? 'Admin'
+      : role === 'manager'
+        ? 'Manager'
+        : role === 'account_manager'
+          ? 'Account Manager'
+          : 'Staff';
 
   return {
     id,
